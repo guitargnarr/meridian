@@ -22,23 +22,32 @@ export function ContactForm() {
     e.preventDefault()
     setLoading(true)
 
-    // For now, we'll use mailto as a simple solution
-    // In production, this would POST to an API endpoint
-    const subject = encodeURIComponent(`PhishGuard Demo Request - ${formData.company}`)
-    const body = encodeURIComponent(
-      `Name: ${formData.name}\n` +
-      `Email: ${formData.email}\n` +
-      `Company: ${formData.company}\n\n` +
-      `Message:\n${formData.message}`
-    )
+    try {
+      const response = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
 
-    window.location.href = `mailto:matthewdscott7@gmail.com?subject=${subject}&body=${body}`
+      if (!response.ok) {
+        throw new Error('Failed to submit')
+      }
 
-    // Simulate submission
-    setTimeout(() => {
-      setLoading(false)
       setSubmitted(true)
-    }, 1000)
+    } catch (error) {
+      // Fallback to mailto if API fails
+      const subject = encodeURIComponent(`PhishGuard Demo Request - ${formData.company}`)
+      const body = encodeURIComponent(
+        `Name: ${formData.name}\n` +
+        `Email: ${formData.email}\n` +
+        `Company: ${formData.company}\n\n` +
+        `Message:\n${formData.message}`
+      )
+      window.location.href = `mailto:matthewdscott7@gmail.com?subject=${subject}&body=${body}`
+      setSubmitted(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (submitted) {
