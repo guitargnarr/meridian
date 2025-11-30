@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, Loader2, Send } from 'lucide-react'
 
-export function ContactForm() {
+function ContactFormInner() {
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({
@@ -17,6 +19,21 @@ export function ContactForm() {
     company: '',
     message: ''
   })
+
+  // Pre-fill message if coming from threat alert
+  useEffect(() => {
+    const source = searchParams.get('source')
+    const demo = searchParams.get('demo')
+
+    if (demo === 'true' && source === 'threat-alert') {
+      setFormData(prev => ({
+        ...prev,
+        message: 'I detected a high-risk phishing email using PhishGuard and would like to learn more about enterprise protection for my organization.'
+      }))
+      // Scroll to contact form
+      document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,5 +159,24 @@ export function ContactForm() {
         </form>
       </CardContent>
     </Card>
+  )
+}
+
+// Wrapper with Suspense for useSearchParams
+export function ContactForm() {
+  return (
+    <Suspense fallback={
+      <Card className="bg-slate-800 border-slate-700">
+        <CardContent className="pt-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-10 bg-slate-700 rounded"></div>
+            <div className="h-10 bg-slate-700 rounded"></div>
+            <div className="h-20 bg-slate-700 rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    }>
+      <ContactFormInner />
+    </Suspense>
   )
 }

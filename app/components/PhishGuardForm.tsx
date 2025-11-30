@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle, Loader2, Shield, Sparkles } from 'lucide-react'
+import { AlertCircle, CheckCircle, Loader2, Shield, Sparkles, Flag } from 'lucide-react'
 
 interface PhishingResult {
   classification: string
@@ -82,12 +82,36 @@ export function PhishGuardForm() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<PhishingResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [feedbackSent, setFeedbackSent] = useState(false)
+
+  const handleFeedback = async (reportType: 'false_positive' | 'false_negative') => {
+    if (!result || feedbackSent) return
+
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailText,
+          reportedAs: reportType,
+          originalResult: {
+            is_phishing: result.is_phishing,
+            confidence: result.confidence
+          }
+        })
+      })
+      setFeedbackSent(true)
+    } catch (err) {
+      console.error('Feedback error:', err)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     setResult(null)
+    setFeedbackSent(false)
 
     try {
       const response = await fetch('https://phishguard-api-production-88df.up.railway.app/classify', {
@@ -107,6 +131,19 @@ export function PhishGuardForm() {
 
       const data: PhishingResult = await response.json()
       setResult(data)
+
+      // Send threat alert for high-confidence phishing (90%+)
+      if (data.is_phishing && data.confidence >= 0.90) {
+        fetch('/api/threat-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            emailText,
+            confidence: data.confidence,
+            threatLevel: data.confidence >= 0.95 ? 'Critical' : 'High'
+          })
+        }).catch(console.error) // Fire and forget
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze email')
     } finally {
@@ -240,12 +277,33 @@ export function PhishGuardForm() {
 
             {result.is_phishing && (
               <div className="text-sm p-3 bg-destructive/10 rounded border-l-4 border-destructive">
-                <p className="font-semibold text-destructive">⚠️ Warning</p>
+                <p className="font-semibold text-destructive">Warning</p>
                 <p className="text-destructive/80 mt-1">
                   This email shows signs of a phishing attempt. Do not click links or provide personal information.
                 </p>
               </div>
             )}
+
+            {/* Feedback buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="text-xs text-muted-foreground">
+                {feedbackSent ? 'Thanks for your feedback!' : 'Is this result incorrect?'}
+              </span>
+              {!feedbackSent && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleFeedback(result.is_phishing ? 'false_positive' : 'false_negative')}
+                    className="text-xs"
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    Report Issue
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
