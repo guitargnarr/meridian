@@ -2,6 +2,7 @@
 
 import { PhishGuardForm } from './components/PhishGuardForm'
 import { ContactForm } from './components/ContactForm'
+import { ApiStatus } from './components/ApiStatus'
 
 export default function Home() {
   return (
@@ -38,6 +39,11 @@ export default function Home() {
           </div>
 
           <PhishGuardForm />
+
+          {/* API Status */}
+          <div className="flex justify-center">
+            <ApiStatus />
+          </div>
         </div>
       </div>
 
@@ -81,9 +87,13 @@ export default function Home() {
       <div className="border-t border-slate-700 py-8 px-4">
         <div className="max-w-4xl mx-auto text-center text-sm text-slate-400">
           <p>Built by Matthew Scott | ML Engineer | Louisville, KY</p>
-          <p className="mt-2">
+          <p className="mt-2 space-x-4">
             <a href="mailto:matthewdscott7@gmail.com" className="hover:text-white transition">
               matthewdscott7@gmail.com
+            </a>
+            <span>|</span>
+            <a href="/privacy" className="hover:text-white transition">
+              Privacy Policy
             </a>
           </p>
         </div>
