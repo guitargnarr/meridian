@@ -11,10 +11,10 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-4">
         <div className="max-w-3xl w-full space-y-8 text-center">
           <div className="space-y-4">
-            <div className="inline-block px-4 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-red-400 text-sm font-medium mb-4">
+            <div className="inline-block px-4 py-1 bg-teal-500/10 border border-teal-500/20 rounded-full text-teal-400 text-sm font-medium mb-4">
               Enterprise Email Security
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
               PhishGuard
             </h1>
             <p className="text-xl md:text-2xl text-slate-300 max-w-2xl mx-auto">
@@ -50,20 +50,20 @@ export default function Home() {
       {/* Value Proposition */}
       <div className="bg-slate-800/50 py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">
+          <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
             Why Enterprise Teams Choose PhishGuard
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center space-y-3">
-              <div className="text-4xl">$4.9M</div>
+              <div className="text-4xl text-teal-400">$4.9M</div>
               <div className="text-slate-300">Average cost of a data breach in 2024</div>
             </div>
             <div className="text-center space-y-3">
-              <div className="text-4xl">91%</div>
+              <div className="text-4xl text-orange-400">91%</div>
               <div className="text-slate-300">Of cyberattacks start with phishing</div>
             </div>
             <div className="text-center space-y-3">
-              <div className="text-4xl">3.4B</div>
+              <div className="text-4xl text-teal-400">3.4B</div>
               <div className="text-slate-300">Phishing emails sent daily</div>
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function Home() {
       {/* Contact Form */}
       <div className="py-16 px-4" id="contact">
         <div className="max-w-xl mx-auto text-center space-y-8">
-          <h2 className="text-3xl font-bold text-white">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
             Request Enterprise Demo
           </h2>
           <p className="text-slate-300">
