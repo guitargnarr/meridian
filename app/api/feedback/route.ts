@@ -1,9 +1,24 @@
 import { NextResponse } from 'next/server'
 import { sendSlackMessage, createFeedbackMessage } from '@/lib/slack'
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
 
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL
 
 export async function POST(request: Request) {
+  // Rate limit: 10 feedback submissions per minute per IP
+  const clientIP = getClientIP(request)
+  const rateLimit = checkRateLimit(`feedback:${clientIP}`, { windowMs: 60000, maxRequests: 10 })
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)) }
+      }
+    )
+  }
+
   try {
     const { emailText, reportedAs, originalResult } = await request.json()
 
