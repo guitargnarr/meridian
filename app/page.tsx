@@ -3,6 +3,7 @@
 import { PhishGuardForm } from './components/PhishGuardForm'
 import { ContactForm } from './components/ContactForm'
 import { ApiStatus } from './components/ApiStatus'
+import { Shield, Zap, Brain, Target } from 'lucide-react'
 
 export default function Home() {
   return (
@@ -22,19 +23,35 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 py-8">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">87%</div>
-              <div className="text-sm text-slate-400">Detection Accuracy</div>
+          {/* Trust Banner */}
+          <div className="flex flex-wrap justify-center gap-4 md:gap-6 py-6 px-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <div className="flex items-center gap-2 text-sm">
+              <Shield className="w-5 h-5 text-teal-400" />
+              <div>
+                <div className="font-semibold text-white">Local-First</div>
+                <div className="text-slate-400 text-xs">Architecture</div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">2,039</div>
-              <div className="text-sm text-slate-400">ML Features</div>
+            <div className="flex items-center gap-2 text-sm">
+              <Zap className="w-5 h-5 text-orange-400" />
+              <div>
+                <div className="font-semibold text-white">&lt;15ms</div>
+                <div className="text-slate-400 text-xs">Response</div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">&lt;15ms</div>
-              <div className="text-sm text-slate-400">Response Time</div>
+            <div className="flex items-center gap-2 text-sm">
+              <Brain className="w-5 h-5 text-teal-400" />
+              <div>
+                <div className="font-semibold text-white">2,039</div>
+                <div className="text-slate-400 text-xs">Features</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Target className="w-5 h-5 text-orange-400" />
+              <div>
+                <div className="font-semibold text-white">87%</div>
+                <div className="text-slate-400 text-xs">Accuracy</div>
+              </div>
             </div>
           </div>
 

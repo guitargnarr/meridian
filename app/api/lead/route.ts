@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server'
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
 
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL
 
 export async function POST(request: Request) {
+  // Rate limit: 5 lead submissions per minute per IP
+  const clientIP = getClientIP(request)
+  const rateLimit = checkRateLimit(`lead:${clientIP}`, { windowMs: 60000, maxRequests: 5 })
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)) }
+      }
+    )
+  }
+
   try {
     const { name, email, company, message } = await request.json()
 

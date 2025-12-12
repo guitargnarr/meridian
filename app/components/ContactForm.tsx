@@ -142,7 +142,7 @@ function ContactFormInner() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-red-600 hover:bg-red-700 text-white"
+            className="w-full bg-teal-500 hover:bg-teal-400 text-white"
           >
             {loading ? (
               <>

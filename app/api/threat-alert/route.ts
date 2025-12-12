@@ -1,9 +1,24 @@
 import { NextResponse } from 'next/server'
 import { sendSlackMessage, createThreatAlertMessage } from '@/lib/slack'
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
 
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL
 
 export async function POST(request: Request) {
+  // Rate limit: 20 threat alerts per minute per IP (higher for legitimate use)
+  const clientIP = getClientIP(request)
+  const rateLimit = checkRateLimit(`threat:${clientIP}`, { windowMs: 60000, maxRequests: 20 })
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)) }
+      }
+    )
+  }
+
   try {
     const { emailText, confidence, threatLevel } = await request.json()
 
