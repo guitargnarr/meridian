@@ -167,10 +167,11 @@ export function PhishGuardForm() {
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-text">Email Content</Label>
-              <div className="flex gap-2">
+          <div className="space-y-3">
+            {/* Mobile: stack label and buttons vertically */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <Label htmlFor="email-text" className="text-base font-medium">Email Content</Label>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Button
                   type="button"
                   variant="outline"
@@ -180,8 +181,9 @@ export function PhishGuardForm() {
                     setResult(null)
                     setError(null)
                   }}
+                  className="w-full sm:w-auto justify-center"
                 >
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Sparkles className="h-4 w-4 mr-1.5" />
                   Try Phishing Example
                 </Button>
                 <Button
@@ -193,8 +195,9 @@ export function PhishGuardForm() {
                     setResult(null)
                     setError(null)
                   }}
+                  className="w-full sm:w-auto justify-center"
                 >
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Sparkles className="h-4 w-4 mr-1.5" />
                   Try Safe Example
                 </Button>
               </div>
@@ -204,7 +207,7 @@ export function PhishGuardForm() {
               value={emailText}
               onChange={(e) => setEmailText(e.target.value)}
               placeholder="Paste email subject and body here..."
-              className="w-full min-h-[150px] p-3 rounded-md border border-input bg-background text-sm resize-y"
+              className="w-full min-h-[180px] p-4 rounded-md border border-input bg-background text-base resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               required
               aria-label="Email content to analyze"
             />
