@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 // In-memory store for analytics (in production, use a database)
 // This persists across requests but resets on cold starts
-let analyticsStore: {
+const analyticsStore: {
   events: Array<{
     timestamp: string
     type: string

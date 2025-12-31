@@ -51,7 +51,7 @@ function ContactFormInner() {
       }
 
       setSubmitted(true)
-    } catch (error) {
+    } catch {
       // Fallback to mailto if API fails
       const subject = encodeURIComponent(`PhishGuard Demo Request - ${formData.company}`)
       const body = encodeURIComponent(
