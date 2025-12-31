@@ -46,17 +46,20 @@ describe('Button Component', () => {
   describe('Sizes', () => {
     it('renders default size', () => {
       render(<Button size="default">Default Size</Button>)
-      expect(screen.getByRole('button')).toHaveClass('h-9')
+      // Updated for 44px min touch target accessibility
+      expect(screen.getByRole('button')).toHaveClass('h-11')
     })
 
     it('renders small size', () => {
       render(<Button size="sm">Small</Button>)
-      expect(screen.getByRole('button')).toHaveClass('h-8')
+      // Updated for 44px min touch target accessibility
+      expect(screen.getByRole('button')).toHaveClass('h-10')
     })
 
     it('renders large size', () => {
       render(<Button size="lg">Large</Button>)
-      expect(screen.getByRole('button')).toHaveClass('h-10')
+      // Updated for 44px min touch target accessibility
+      expect(screen.getByRole('button')).toHaveClass('h-12')
     })
   })
 
