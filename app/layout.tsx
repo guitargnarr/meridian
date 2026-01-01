@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "PhishGuard - ML-Powered Email Security | 87% Accuracy",
   description: "Production ML phishing detector: 2,039 features, <15ms response, 87% accuracy. Local-first architecture for privacy-sensitive organizations.",
-  metadataBase: new URL("https://phishguard-ui.vercel.app"),
+  metadataBase: new URL("https://phishguard.projectlavos.com"),
   alternates: {
     canonical: "/",
   },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "PhishGuard - ML-Powered Email Security | 87% Detection Accuracy",
     description: "Production ML phishing detector: 2,039 features, <15ms response, 87% accuracy. Local-first architecture for privacy-sensitive organizations.",
-    url: "https://phishguard-ui.vercel.app",
+    url: "https://phishguard.projectlavos.com",
     siteName: "PhishGuard",
     images: [
       {
@@ -69,8 +69,8 @@ const jsonLd = {
     "priceCurrency": "USD"
   },
   "description": "ML-powered phishing detection with 87% accuracy, analyzing 2,039 features in under 15ms",
-  "url": "https://phishguard-ui.vercel.app",
-  "image": "https://phishguard-ui.vercel.app/og-image.png",
+  "url": "https://phishguard.projectlavos.com",
+  "image": "https://phishguard.projectlavos.com/og-image.png",
   "author": {
     "@type": "Person",
     "name": "Matthew Scott",

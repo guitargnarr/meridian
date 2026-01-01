@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800">
       {/* Hero Section */}
-      <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 hero-gradient">
+      <main role="main" className="flex flex-col items-center justify-center min-h-[70vh] p-4 hero-gradient">
         <div className="max-w-3xl w-full space-y-8 text-center">
           <div className="space-y-4 animate-fade-in-up">
             <div className="inline-block px-4 py-1 bg-teal-500/10 border border-teal-500/20 rounded-full text-teal-400 text-sm font-medium mb-4">
