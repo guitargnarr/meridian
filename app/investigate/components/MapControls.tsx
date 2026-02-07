@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import type { GraphStats, PivotPoint, NodeType } from "@/lib/graph-types";
 import { NODE_COLORS, NODE_LABELS } from "@/lib/graph-types";
+import type { OverlayId } from "@/lib/overlay-data";
+import { OVERLAY_CONFIGS } from "@/lib/overlay-data";
 
 interface MapControlsProps {
   stats: GraphStats | null;
@@ -26,6 +28,8 @@ interface MapControlsProps {
   isTilted: boolean;
   selectedState: string | null;
   onClearState: () => void;
+  activeOverlays: Set<OverlayId>;
+  onToggleOverlay: (id: OverlayId) => void;
 }
 
 export default function MapControls({
@@ -40,6 +44,8 @@ export default function MapControls({
   isTilted,
   selectedState,
   onClearState,
+  activeOverlays,
+  onToggleOverlay,
 }: MapControlsProps) {
   return (
     <div className="flex items-center justify-between px-4 py-2 border-t border-[#1a1a1a] bg-[#050505]/80 backdrop-blur-sm">
@@ -112,6 +118,32 @@ export default function MapControls({
             <X className="w-2.5 h-2.5" />
           </button>
         )}
+      </div>
+
+      {/* Center-right: Overlay toggles */}
+      <div className="flex items-center gap-1">
+        {OVERLAY_CONFIGS.map((config) => {
+          const active = activeOverlays.has(config.id);
+          return (
+            <button
+              key={config.id}
+              onClick={() => onToggleOverlay(config.id)}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium border transition-colors ${
+                active
+                  ? "border-current/30 bg-current/10"
+                  : "text-[#4a4540] border-transparent hover:text-[#8a8580] hover:bg-[#1a1a1a]"
+              }`}
+              style={active ? { color: config.color, borderColor: `${config.color}33`, backgroundColor: `${config.color}1a` } : undefined}
+              title={config.description}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: active ? config.color : "#4a4540" }}
+              />
+              {config.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Right: Zoom controls + legend */}

@@ -13,6 +13,9 @@ import * as topojson from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import type { GraphResponse } from "@/lib/graph-types";
 import { FIPS_TO_STATE, STATE_NAMES } from "@/lib/fips-utils";
+import type { OverlayId } from "@/lib/overlay-data";
+import { STATE_METRICS, formatPopulation, formatIncome } from "@/lib/overlay-data";
+import { US_INTERSTATES } from "@/lib/data/us-interstates";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -38,6 +41,7 @@ interface InteractiveMapProps {
   graphData: GraphResponse | null;
   onStateClick?: (stateAbbr: string) => void;
   selectedState?: string | null;
+  activeOverlays?: Set<OverlayId>;
 }
 
 export interface InteractiveMapHandle {
@@ -50,7 +54,7 @@ export interface InteractiveMapHandle {
 
 const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
   function InteractiveMap(
-    { stateStats, graphData, onStateClick, selectedState },
+    { stateStats, graphData, onStateClick, selectedState, activeOverlays = new Set() },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -65,6 +69,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     const [countiesLoading, setCountiesLoading] = useState(false);
     const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
     const [hoveredCount, setHoveredCount] = useState<number>(0);
+    const [hoveredStateAbbr, setHoveredStateAbbr] = useState<string | null>(null);
     const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({
       x: 0,
       y: 0,
@@ -81,6 +86,38 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         return d3.interpolateRgbBasis(["#0d3d36", "#14b8a6", "#e67e22"])(t);
       },
       [maxCount]
+    );
+
+    // ── Overlay fill logic ─────────────────────────────────────────────
+
+    const maxPopulation = Math.max(
+      ...Object.values(STATE_METRICS).map((m) => m.population)
+    );
+
+    const getOverlayFill = useCallback(
+      (stateAbbr: string): string | null => {
+        const metrics = STATE_METRICS[stateAbbr];
+        if (!metrics) return null;
+
+        // Priority: employment > socioeconomic > population > default threat
+        if (activeOverlays.has("employment")) {
+          const composite =
+            (1 - metrics.unemploymentRate / 10) * 0.6 +
+            (metrics.gig_pct / 15) * 0.4;
+          const t = Math.max(0, Math.min(1, composite));
+          return d3.interpolateRgbBasis(["#052e16", "#22c55e", "#86efac"])(t);
+        }
+        if (activeOverlays.has("socioeconomic")) {
+          const t = Math.max(0, Math.min(1, metrics.povertyRate / 20));
+          return d3.interpolateRgbBasis(["#1a1500", "#eab308", "#fef08a"])(t);
+        }
+        if (activeOverlays.has("population")) {
+          const t = metrics.population / maxPopulation;
+          return d3.interpolateBlues(Math.max(0.1, t));
+        }
+        return null;
+      },
+      [activeOverlays, maxPopulation]
     );
 
     // ── Expose zoom controls via ref ──────────────────────────────────
@@ -193,6 +230,10 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       // State border mesh layer
       const borderGroup = g.append("g").attr("class", "state-borders");
 
+      // Overlay layers (between borders and labels)
+      const highwayGroup = g.append("g").attr("class", "overlay-highways");
+      const legislationGroup = g.append("g").attr("class", "overlay-legislation");
+
       // Label layer
       const labelGroup = g.append("g").attr("class", "labels").style("opacity", 0);
 
@@ -206,6 +247,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         .attr("fill", (d) => {
           const fips = String(d.id).padStart(2, "0");
           const stateAbbr = FIPS_TO_STATE[fips];
+          const overlayFill = stateAbbr ? getOverlayFill(stateAbbr) : null;
+          if (overlayFill) return overlayFill;
           const count = stateAbbr ? stateStats.get(stateAbbr) || 0 : 0;
           return colorScale(count);
         })
@@ -220,10 +263,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
             : "Unknown";
           setHoveredFeature(name);
           setHoveredCount(count);
+          setHoveredStateAbbr(stateAbbr || null);
           d3.select(this).attr("stroke", "#14b8a6").attr("stroke-width", 1.5);
         })
         .on("mouseleave", function () {
           setHoveredFeature(null);
+          setHoveredStateAbbr(null);
           d3.select(this).attr("stroke", "none");
         })
         .on("click", (event, d) => {
@@ -295,6 +340,53 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           .text(stateAbbr);
       });
 
+      // ── Draw highway overlay ──────────────────────────────────────────
+
+      if (activeOverlays.has("highways")) {
+        highwayGroup
+          .selectAll("path")
+          .data(US_INTERSTATES.features)
+          .join("path")
+          .attr("d", (d) => {
+            const lineString = {
+              type: "LineString" as const,
+              coordinates: d.geometry.coordinates,
+            };
+            return path(lineString) || "";
+          })
+          .attr("fill", "none")
+          .attr("stroke", "#e0e0e0")
+          .attr("stroke-width", 1.5)
+          .attr("stroke-opacity", 0.5)
+          .attr("vector-effect", "non-scaling-stroke")
+          .attr("pointer-events", "none");
+      } else {
+        highwayGroup.selectAll("*").remove();
+      }
+
+      // ── Draw legislation overlay ───────────────────────────────────────
+
+      if (activeOverlays.has("legislation")) {
+        legislationGroup
+          .selectAll("path")
+          .data(
+            stateFeatures.filter((f) => {
+              const fips = String(f.id).padStart(2, "0");
+              const abbr = FIPS_TO_STATE[fips];
+              return abbr && STATE_METRICS[abbr]?.hasActiveLegislation;
+            })
+          )
+          .join("path")
+          .attr("d", (d) => path(d) || "")
+          .attr("fill", "rgba(239, 68, 68, 0.1)")
+          .attr("stroke", "#ef4444")
+          .attr("stroke-width", 2.5)
+          .attr("vector-effect", "non-scaling-stroke")
+          .attr("pointer-events", "none");
+      } else {
+        legislationGroup.selectAll("*").remove();
+      }
+
       // ── Zoom behavior ───────────────────────────────────────────────
 
       const zoom = d3
@@ -322,7 +414,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
         onStateClick?.(/* clear */ "");
       });
-    }, [stateTopoData, stateStats, colorScale, onStateClick]);
+    }, [stateTopoData, stateStats, colorScale, onStateClick, activeOverlays, getOverlayFill]);
 
     // ── Update county layer when county data loads ────────────────────
 
@@ -355,7 +447,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       countyGroup.style("opacity", currentZoom > 3 ? 1 : 0);
     }, [countyTopoData, currentZoom]);
 
-    // ── Update fills when stateStats change ───────────────────────────
+    // ── Update fills when stateStats or overlays change ────────────────
 
     useEffect(() => {
       if (!gRef.current) return;
@@ -366,10 +458,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           const feature = d as GeoJSON.Feature & { id?: string | number };
           const fips = String(feature.id).padStart(2, "0");
           const stateAbbr = FIPS_TO_STATE[fips];
+          const overlayFill = stateAbbr ? getOverlayFill(stateAbbr) : null;
+          if (overlayFill) return overlayFill;
           const count = stateAbbr ? stateStats.get(stateAbbr) || 0 : 0;
           return colorScale(count);
         });
-    }, [stateStats, colorScale]);
+    }, [stateStats, colorScale, activeOverlays, getOverlayFill]);
 
     // ── Zoom to selected state from parent ────────────────────────────
 
@@ -504,6 +598,30 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
               <span className="text-[#14b8a6] ml-2">
                 {hoveredCount} threat{hoveredCount !== 1 ? "s" : ""}
               </span>
+            )}
+            {hoveredStateAbbr && STATE_METRICS[hoveredStateAbbr] && activeOverlays.size > 0 && (
+              <div className="mt-1 pt-1 border-t border-[#2a2a2a] space-y-0.5">
+                {activeOverlays.has("population") && (
+                  <div className="text-[#3b82f6]">
+                    {formatPopulation(STATE_METRICS[hoveredStateAbbr].population)} residents
+                  </div>
+                )}
+                {activeOverlays.has("socioeconomic") && (
+                  <div className="text-[#eab308]">
+                    {STATE_METRICS[hoveredStateAbbr].povertyRate}% poverty, {formatIncome(STATE_METRICS[hoveredStateAbbr].medianIncome)} median
+                  </div>
+                )}
+                {activeOverlays.has("employment") && (
+                  <div className="text-[#22c55e]">
+                    {STATE_METRICS[hoveredStateAbbr].unemploymentRate}% unemployed, {STATE_METRICS[hoveredStateAbbr].gig_pct}% gig
+                  </div>
+                )}
+                {activeOverlays.has("legislation") && STATE_METRICS[hoveredStateAbbr].hasActiveLegislation && (
+                  <div className="text-[#ef4444]">
+                    {STATE_METRICS[hoveredStateAbbr].legislationTopics.join(", ")}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

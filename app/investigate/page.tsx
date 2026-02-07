@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef } from "react";
 import { Shield, AlertTriangle, Map as MapIcon, GitFork } from "lucide-react";
 import type { GraphResponse, GraphNode, NodeType } from "@/lib/graph-types";
+import type { OverlayId } from "@/lib/overlay-data";
 import { buildGraph } from "@/lib/phishguard-api";
 import { enrichPhone, getStateStats } from "@/lib/geo-utils";
 import ForceGraph from "./components/ForceGraph";
@@ -23,8 +24,21 @@ export default function InvestigatePage() {
   const [vizMode, setVizMode] = useState<"map" | "graph">("map");
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [isTilted, setIsTilted] = useState(false);
+  const [activeOverlays, setActiveOverlays] = useState<Set<OverlayId>>(new Set());
 
   const mapRef = useRef<InteractiveMapHandle>(null);
+
+  function handleToggleOverlay(id: OverlayId) {
+    setActiveOverlays((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
 
   const selectedNode = useMemo(() => {
     if (!graphData || !selectedNodeId) return null;
@@ -183,6 +197,7 @@ export default function InvestigatePage() {
                 graphData={graphData}
                 onStateClick={handleStateClick}
                 selectedState={selectedState}
+                activeOverlays={activeOverlays}
               />
             ) : graphData ? (
               <ForceGraph
@@ -216,6 +231,8 @@ export default function InvestigatePage() {
                   setSelectedState(null);
                   mapRef.current?.resetZoom();
                 }}
+                activeOverlays={activeOverlays}
+                onToggleOverlay={handleToggleOverlay}
               />
             ) : graphData ? (
               <GraphControls
