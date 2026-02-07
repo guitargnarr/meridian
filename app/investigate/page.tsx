@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Shield, AlertTriangle } from "lucide-react";
+import { Shield, AlertTriangle, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import type { GraphResponse, GraphNode, NodeType } from "@/lib/graph-types";
 import { buildGraph } from "@/lib/phishguard-api";
+import { enrichPhone, getStateStats } from "@/lib/geo-utils";
 import ForceGraph from "./components/ForceGraph";
 import NodeDetail from "./components/NodeDetail";
 import MessageInput from "./components/MessageInput";
 import GraphControls from "./components/GraphControls";
+import GeoMap from "./components/GeoMap";
 
 export default function InvestigatePage() {
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
@@ -20,9 +22,19 @@ export default function InvestigatePage() {
     return graphData.nodes.find((n) => n.id === selectedNodeId) || null;
   }, [graphData, selectedNodeId]);
 
+  const [geoExpanded, setGeoExpanded] = useState(false);
+
   const activeTypes = useMemo(() => {
     if (!graphData) return new Set<NodeType>();
     return new Set(graphData.nodes.map((n) => n.type));
+  }, [graphData]);
+
+  const stateStats = useMemo(() => {
+    if (!graphData) return new Map<string, number>();
+    const phones = graphData.nodes
+      .filter((n) => n.type === "phone")
+      .map((n) => n.label);
+    return getStateStats(phones);
   }, [graphData]);
 
   async function handleSubmit(params: {
@@ -94,6 +106,9 @@ export default function InvestigatePage() {
           >
             Investigate
           </a>
+          <span className="text-xs text-[#4a4540] cursor-default" title="Coming soon">
+            Intel
+          </span>
         </nav>
       </header>
 
@@ -121,6 +136,34 @@ export default function InvestigatePage() {
             />
           ) : (
             <EmptyState loading={loading} />
+          )}
+
+          {/* Geographic Intelligence */}
+          {graphData && stateStats.size > 0 && (
+            <div className="absolute bottom-[52px] left-0 right-0 z-10">
+              <button
+                onClick={() => setGeoExpanded((v) => !v)}
+                className="w-full flex items-center gap-2 px-3 py-1.5 bg-[#0a0a0a]/90 backdrop-blur-sm border-t border-[#1a1a1a] text-[10px] uppercase tracking-[0.15em] text-[#4a4540] hover:text-[#8a8580] transition-colors"
+              >
+                <MapPin className="w-3 h-3 text-[#e67e22]" />
+                <span>Geographic Intelligence</span>
+                <span className="text-[#e67e22] ml-1">
+                  {stateStats.size} state{stateStats.size !== 1 ? "s" : ""}
+                </span>
+                <span className="ml-auto">
+                  {geoExpanded ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronUp className="w-3 h-3" />
+                  )}
+                </span>
+              </button>
+              {geoExpanded && (
+                <div className="h-[200px] bg-[#050505] border-t border-[#1a1a1a]">
+                  <GeoMap stateStats={stateStats} />
+                </div>
+              )}
+            </div>
           )}
 
           {/* Bottom controls */}
@@ -258,16 +301,28 @@ function getDemoData(
     });
   });
 
-  // Phone nodes
+  // Phone nodes with geographic enrichment
   phones.forEach((p) => {
+    const phoneGeo = enrichPhone(p);
+    const riskFactors = ["voip_number"];
+    if (phoneGeo.geo) {
+      riskFactors.push(
+        `area_code_${phoneGeo.areaCode}_${phoneGeo.geo.majorCities[0]?.toLowerCase().replace(/\s/g, "_") || phoneGeo.geo.state.toLowerCase()}`
+      );
+    }
+    if (phoneGeo.isTollFree) {
+      riskFactors.push("toll_free_nationwide");
+    }
+
     nodes.push({
       id: `phone:${p}`,
       type: "phone",
       label: p,
       risk_score: 55,
       risk_level: "medium",
-      risk_factors: ["voip_number"],
+      risk_factors: riskFactors,
     });
+
     const carrier = "VoIP Provider";
     if (!nodes.find((n) => n.id === `carrier:${carrier}`)) {
       nodes.push({
@@ -281,6 +336,24 @@ function getDemoData(
       target: `carrier:${carrier}`,
       relationship: "carrier",
     });
+
+    // Create region node for geographic connection
+    if (phoneGeo.geo) {
+      const regionId = `region:${phoneGeo.geo.state}`;
+      if (!nodes.find((n) => n.id === regionId)) {
+        nodes.push({
+          id: regionId,
+          type: "region",
+          label: `${phoneGeo.geo.stateName} (${phoneGeo.geo.state})`,
+        });
+      }
+      edges.push({
+        source: `phone:${p}`,
+        target: regionId,
+        relationship: "located_in",
+        evidence: [`Area code ${phoneGeo.areaCode}: ${phoneGeo.geo.region}`],
+      });
+    }
   });
 
   // Email nodes

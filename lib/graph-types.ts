@@ -9,7 +9,8 @@ export type NodeType =
   | "nameserver"
   | "ssl_cert"
   | "carrier"
-  | "campaign";
+  | "campaign"
+  | "region";
 
 export type Relationship =
   | "resolves_to"
@@ -18,7 +19,8 @@ export type Relationship =
   | "has_certificate"
   | "carrier"
   | "uses_domain"
-  | "related_to";
+  | "related_to"
+  | "located_in";
 
 export type RiskLevel = "minimal" | "low" | "medium" | "high";
 
@@ -134,6 +136,7 @@ export const NODE_COLORS: Record<NodeType, string> = {
   ssl_cert: "#7f8c8d",
   carrier: "#95a5a6",
   campaign: "#e91e63",
+  region: "#e67e22",
 };
 
 export const NODE_LABELS: Record<NodeType, string> = {
@@ -146,4 +149,5 @@ export const NODE_LABELS: Record<NodeType, string> = {
   ssl_cert: "SSL Cert",
   carrier: "Carrier",
   campaign: "Campaign",
+  region: "Region",
 };

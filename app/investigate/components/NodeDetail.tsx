@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Globe,
   Server,
@@ -15,6 +15,7 @@ import {
   Shield,
   Expand,
   Loader2,
+  MapPin,
 } from "lucide-react";
 import type {
   GraphNode,
@@ -24,6 +25,8 @@ import type {
 } from "@/lib/graph-types";
 import { NODE_COLORS, NODE_LABELS } from "@/lib/graph-types";
 import { enrichDomain, getSubgraph } from "@/lib/phishguard-api";
+import { enrichPhone } from "@/lib/geo-utils";
+import type { PhoneEnrichment } from "@/lib/geo-utils";
 
 interface NodeDetailProps {
   node: GraphNode;
@@ -43,6 +46,7 @@ const TYPE_ICONS: Record<NodeType, React.ReactNode> = {
   ssl_cert: <Lock className="w-4 h-4" />,
   carrier: <Radio className="w-4 h-4" />,
   campaign: <AlertTriangle className="w-4 h-4" />,
+  region: <MapPin className="w-4 h-4" />,
 };
 
 function RiskBadge({ score, level }: { score?: number; level?: string }) {
@@ -93,6 +97,11 @@ export default function NodeDetail({
   const [enriching, setEnriching] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [enrichError, setEnrichError] = useState<string | null>(null);
+
+  const phoneGeo: PhoneEnrichment | null = useMemo(() => {
+    if (node.type !== "phone") return null;
+    return enrichPhone(node.label);
+  }, [node.type, node.label]);
 
   const connectedEdges = edges.filter(
     (e) => e.source === node.id || e.target === node.id
@@ -208,6 +217,46 @@ export default function NodeDetail({
         <p className="text-xs text-red-400 bg-red-400/10 px-3 py-2 rounded-lg">
           {enrichError}
         </p>
+      )}
+
+      {/* Phone Geographic Enrichment */}
+      {phoneGeo && (
+        <div className="space-y-3">
+          <div className="h-px bg-gradient-to-r from-transparent via-[#2a2a2a] to-transparent" />
+          <DetailSection title="Geography">
+            <DetailRow label="Area Code" value={phoneGeo.areaCode} mono />
+            {phoneGeo.isTollFree && (
+              <DetailRow label="Type" value="Toll-Free (Nationwide)" />
+            )}
+            {phoneGeo.geo && (
+              <>
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[10px] text-[#4a4540] shrink-0">
+                    State
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 text-[10px] font-mono font-medium rounded bg-[#e67e22]/15 text-[#e67e22] border border-[#e67e22]/20">
+                      {phoneGeo.geo.state}
+                    </span>
+                    <span className="text-[11px] text-[#8a8580]">
+                      {phoneGeo.geo.stateName}
+                    </span>
+                  </span>
+                </div>
+                <DetailRow label="Region" value={phoneGeo.geo.region} />
+                {phoneGeo.geo.majorCities.length > 0 && (
+                  <DetailRow
+                    label="Cities"
+                    value={phoneGeo.geo.majorCities.join(", ")}
+                  />
+                )}
+              </>
+            )}
+            {!phoneGeo.geo && !phoneGeo.isTollFree && (
+              <DetailRow label="Status" value="Unknown area code" />
+            )}
+          </DetailSection>
+        </div>
       )}
 
       {/* Enrichment Data */}

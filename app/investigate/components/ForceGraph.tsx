@@ -42,6 +42,7 @@ function typeIcon(type: NodeType): string {
     ssl_cert: "\uf023",  // lock
     carrier: "\uf012",   // signal
     campaign: "\uf071",  // warning
+    region: "\uf041",    // map-marker
   };
   return icons[type] || "\uf111";
 }
