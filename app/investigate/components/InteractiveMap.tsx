@@ -247,8 +247,6 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         .attr("fill", (d) => {
           const fips = String(d.id).padStart(2, "0");
           const stateAbbr = FIPS_TO_STATE[fips];
-          const overlayFill = stateAbbr ? getOverlayFill(stateAbbr) : null;
-          if (overlayFill) return overlayFill;
           const count = stateAbbr ? stateStats.get(stateAbbr) || 0 : 0;
           return colorScale(count);
         })
@@ -340,53 +338,6 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           .text(stateAbbr);
       });
 
-      // ── Draw highway overlay ──────────────────────────────────────────
-
-      if (activeOverlays.has("highways")) {
-        highwayGroup
-          .selectAll("path")
-          .data(US_INTERSTATES.features)
-          .join("path")
-          .attr("d", (d) => {
-            const lineString = {
-              type: "LineString" as const,
-              coordinates: d.geometry.coordinates,
-            };
-            return path(lineString) || "";
-          })
-          .attr("fill", "none")
-          .attr("stroke", "#e0e0e0")
-          .attr("stroke-width", 1.5)
-          .attr("stroke-opacity", 0.5)
-          .attr("vector-effect", "non-scaling-stroke")
-          .attr("pointer-events", "none");
-      } else {
-        highwayGroup.selectAll("*").remove();
-      }
-
-      // ── Draw legislation overlay ───────────────────────────────────────
-
-      if (activeOverlays.has("legislation")) {
-        legislationGroup
-          .selectAll("path")
-          .data(
-            stateFeatures.filter((f) => {
-              const fips = String(f.id).padStart(2, "0");
-              const abbr = FIPS_TO_STATE[fips];
-              return abbr && STATE_METRICS[abbr]?.hasActiveLegislation;
-            })
-          )
-          .join("path")
-          .attr("d", (d) => path(d) || "")
-          .attr("fill", "rgba(239, 68, 68, 0.1)")
-          .attr("stroke", "#ef4444")
-          .attr("stroke-width", 2.5)
-          .attr("vector-effect", "non-scaling-stroke")
-          .attr("pointer-events", "none");
-      } else {
-        legislationGroup.selectAll("*").remove();
-      }
-
       // ── Zoom behavior ───────────────────────────────────────────────
 
       const zoom = d3
@@ -414,7 +365,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
         onStateClick?.(/* clear */ "");
       });
-    }, [stateTopoData, stateStats, colorScale, onStateClick, activeOverlays, getOverlayFill]);
+    }, [stateTopoData, stateStats, colorScale, onStateClick]);
 
     // ── Update county layer when county data loads ────────────────────
 
@@ -447,7 +398,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       countyGroup.style("opacity", currentZoom > 3 ? 1 : 0);
     }, [countyTopoData, currentZoom]);
 
-    // ── Update fills when stateStats or overlays change ────────────────
+    // ── Update fills when stateStats change ────────────────────────────
 
     useEffect(() => {
       if (!gRef.current) return;
@@ -464,6 +415,71 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           return colorScale(count);
         });
     }, [stateStats, colorScale, activeOverlays, getOverlayFill]);
+
+    // ── Update overlay layers (no full re-render) ───────────────────
+
+    useEffect(() => {
+      if (!gRef.current || !pathRef.current || !stateTopoData) return;
+
+      const g = gRef.current;
+      const path = pathRef.current;
+
+      // Highways
+      let highwayGroup = g.select<SVGGElement>(".overlay-highways");
+      if (highwayGroup.empty()) {
+        highwayGroup = g.insert("g", ".labels").attr("class", "overlay-highways");
+      }
+      highwayGroup.selectAll("*").remove();
+      if (activeOverlays.has("highways")) {
+        highwayGroup
+          .selectAll("path")
+          .data(US_INTERSTATES.features)
+          .join("path")
+          .attr("d", (d) => {
+            const lineString = {
+              type: "LineString" as const,
+              coordinates: d.geometry.coordinates,
+            };
+            return path(lineString as d3.GeoPermissibleObjects) || "";
+          })
+          .attr("fill", "none")
+          .attr("stroke", "#e0e0e0")
+          .attr("stroke-width", 1.5)
+          .attr("stroke-opacity", 0.5)
+          .attr("vector-effect", "non-scaling-stroke")
+          .attr("pointer-events", "none");
+      }
+
+      // Legislation
+      let legislationGroup = g.select<SVGGElement>(".overlay-legislation");
+      if (legislationGroup.empty()) {
+        legislationGroup = g.insert("g", ".labels").attr("class", "overlay-legislation");
+      }
+      legislationGroup.selectAll("*").remove();
+      if (activeOverlays.has("legislation")) {
+        const stateFeatures = topojson.feature(
+          stateTopoData,
+          stateTopoData.objects.states
+        ).features;
+
+        legislationGroup
+          .selectAll("path")
+          .data(
+            stateFeatures.filter((f) => {
+              const fips = String(f.id).padStart(2, "0");
+              const abbr = FIPS_TO_STATE[fips];
+              return abbr && STATE_METRICS[abbr]?.hasActiveLegislation;
+            })
+          )
+          .join("path")
+          .attr("d", (d) => path(d) || "")
+          .attr("fill", "rgba(239, 68, 68, 0.1)")
+          .attr("stroke", "#ef4444")
+          .attr("stroke-width", 2.5)
+          .attr("vector-effect", "non-scaling-stroke")
+          .attr("pointer-events", "none");
+      }
+    }, [activeOverlays, stateTopoData]);
 
     // ── Zoom to selected state from parent ────────────────────────────
 
