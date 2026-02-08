@@ -475,73 +475,92 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     // ── Metric cluster dots ──────────────────────────────────────────
 
     useEffect(() => {
-      if (!gRef.current || !pathRef.current) return;
-
-      const g = gRef.current;
-      const pathGen = pathRef.current;
-      const features = stateFeaturesRef.current;
-
-      // Remove old dots
-      g.selectAll(".metric-dots").remove();
-
-      // Hide dots when metric-encoding overlays are active
-      const metricOverlaysActive =
-        activeOverlays.has("population") ||
-        activeOverlays.has("socioeconomic") ||
-        activeOverlays.has("employment");
-
-      if (metricOverlaysActive || features.length === 0) return;
-
-      // Hide dots when zoomed out too far
-      if (currentZoom < 0.5) return;
-
-      // Insert before labels so dots sit below label text in z-order
-      const dotsGroup = g.insert("g", ".labels").attr("class", "metric-dots");
-      const scale = 1 / Math.sqrt(Math.max(currentZoom, 0.5));
-
-      // Build flat array of all dot data for D3 data-join
-      const dotData: { cx: number; cy: number; r: number; color: string }[] = [];
-
-      features.forEach((feature) => {
-        const fips = String(feature.id).padStart(2, "0");
-        const abbr = FIPS_TO_STATE[fips];
-        const metrics = abbr ? STATE_METRICS[abbr] : null;
-        if (!metrics || !abbr) return;
-
-        const centroid = pathGen.centroid(feature);
-        if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return;
-
-        const [cx, cy] = centroid;
-        const offset = 6 * scale;
-
-        const defs = [
-          { dx: 0, dy: -offset, value: metrics.population / METRIC_MAXES.population, color: "#3b82f6" },
-          { dx: offset, dy: 0, value: metrics.medianIncome / METRIC_MAXES.medianIncome, color: "#22c55e" },
-          { dx: 0, dy: offset, value: metrics.unemploymentRate / METRIC_MAXES.unemploymentRate, color: "#eab308" },
-          { dx: -offset, dy: 0, value: metrics.gig_pct / METRIC_MAXES.gig_pct, color: "#14b8a6" },
-          { dx: 0, dy: 0, value: metrics.povertyRate / METRIC_MAXES.povertyRate, color: "#f59e0b" },
-        ];
-
-        defs.forEach((d) => {
-          dotData.push({
-            cx: cx + d.dx,
-            cy: cy + d.dy,
-            r: (1.5 + Math.min(d.value, 1) * 2.5) * scale,
-            color: d.color,
+      // renderMap uses double-rAF (frame N → frame N+1 → render on N+2).
+      // We must wait until after that completes, so use triple-rAF to
+      // guarantee dots are added AFTER renderMap finishes its DOM wipe.
+      let cancelled = false;
+      const rafId = requestAnimationFrame(() => {
+        if (cancelled) return;
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          requestAnimationFrame(() => {
+            if (cancelled) return;
+            renderDots();
           });
         });
       });
 
-      dotsGroup
-        .selectAll("circle")
-        .data(dotData)
-        .join("circle")
-        .attr("cx", (d) => d.cx)
-        .attr("cy", (d) => d.cy)
-        .attr("r", (d) => d.r)
-        .attr("fill", (d) => d.color)
-        .attr("opacity", 0.85)
-        .attr("pointer-events", "none");
+      function renderDots() {
+        if (!gRef.current || !pathRef.current) return;
+
+        const g = gRef.current;
+        const pathGen = pathRef.current;
+        const features = stateFeaturesRef.current;
+
+        // Remove old dots
+        g.selectAll(".metric-dots").remove();
+
+        // Hide dots when metric-encoding overlays are active
+        const metricOverlaysActive =
+          activeOverlays.has("population") ||
+          activeOverlays.has("socioeconomic") ||
+          activeOverlays.has("employment");
+
+        if (metricOverlaysActive || features.length === 0) return;
+
+        // Hide dots when zoomed out too far
+        if (currentZoom < 0.5) return;
+
+        // Insert before labels so dots sit below label text in z-order
+        const dotsGroup = g.insert("g", ".labels").attr("class", "metric-dots");
+        const scale = 1 / Math.sqrt(Math.max(currentZoom, 0.5));
+
+        // Build flat array of all dot data for D3 data-join
+        const dotData: { cx: number; cy: number; r: number; color: string }[] = [];
+
+        features.forEach((feature) => {
+          const fips = String(feature.id).padStart(2, "0");
+          const abbr = FIPS_TO_STATE[fips];
+          const metrics = abbr ? STATE_METRICS[abbr] : null;
+          if (!metrics || !abbr) return;
+
+          const centroid = pathGen.centroid(feature);
+          if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return;
+
+          const [cx, cy] = centroid;
+          const offset = 6 * scale;
+
+          const defs = [
+            { dx: 0, dy: -offset, value: metrics.population / METRIC_MAXES.population, color: "#3b82f6" },
+            { dx: offset, dy: 0, value: metrics.medianIncome / METRIC_MAXES.medianIncome, color: "#22c55e" },
+            { dx: 0, dy: offset, value: metrics.unemploymentRate / METRIC_MAXES.unemploymentRate, color: "#eab308" },
+            { dx: -offset, dy: 0, value: metrics.gig_pct / METRIC_MAXES.gig_pct, color: "#14b8a6" },
+            { dx: 0, dy: 0, value: metrics.povertyRate / METRIC_MAXES.povertyRate, color: "#f59e0b" },
+          ];
+
+          defs.forEach((d) => {
+            dotData.push({
+              cx: cx + d.dx,
+              cy: cy + d.dy,
+              r: (1.5 + Math.min(d.value, 1) * 2.5) * scale,
+              color: d.color,
+            });
+          });
+        });
+
+        dotsGroup
+          .selectAll("circle")
+          .data(dotData)
+          .join("circle")
+          .attr("cx", (d) => d.cx)
+          .attr("cy", (d) => d.cy)
+          .attr("r", (d) => d.r)
+          .attr("fill", (d) => d.color)
+          .attr("opacity", 0.85)
+          .attr("pointer-events", "none");
+      }
+
+      return () => { cancelled = true; cancelAnimationFrame(rafId); };
     }, [activeOverlays, currentZoom, resizeGen]);
 
     // ── Update overlay layers (no full re-render) ───────────────────
