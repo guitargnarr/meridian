@@ -471,6 +471,71 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         });
     }, [activeOverlays, getOverlayFill, defaultFill]);
 
+    // ── Metric cluster dots ──────────────────────────────────────────
+
+    const MAX_POP = 39_000_000;
+    const MAX_INCOME = 102_000;
+    const MAX_UNEMP = 5.2;
+    const MAX_GIG = 13.2;
+    const MAX_POVERTY = 20;
+
+    useEffect(() => {
+      if (!gRef.current || !pathRef.current) return;
+
+      const g = gRef.current;
+      const pathGen = pathRef.current;
+      const features = stateFeaturesRef.current;
+
+      // Remove old dots
+      g.selectAll(".metric-dots").remove();
+
+      // Hide dots when metric-encoding overlays are active
+      const metricOverlaysActive =
+        activeOverlays.has("population") ||
+        activeOverlays.has("socioeconomic") ||
+        activeOverlays.has("employment");
+
+      if (metricOverlaysActive || features.length === 0) return;
+
+      // Hide dots when zoomed out too far
+      if (currentZoom < 0.5) return;
+
+      const dotsGroup = g.append("g").attr("class", "metric-dots");
+      const scale = 1 / Math.sqrt(Math.max(currentZoom, 0.5));
+
+      features.forEach((feature) => {
+        const fips = String(feature.id).padStart(2, "0");
+        const abbr = FIPS_TO_STATE[fips];
+        const metrics = abbr ? STATE_METRICS[abbr] : null;
+        if (!metrics || !abbr) return;
+
+        const centroid = pathGen.centroid(feature);
+        if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return;
+
+        const [cx, cy] = centroid;
+        const offset = 6 * scale;
+
+        const dots = [
+          { dx: 0, dy: -offset, value: metrics.population / MAX_POP, color: "#3b82f6" },
+          { dx: offset, dy: 0, value: metrics.medianIncome / MAX_INCOME, color: "#22c55e" },
+          { dx: 0, dy: offset, value: metrics.unemploymentRate / MAX_UNEMP, color: "#eab308" },
+          { dx: -offset, dy: 0, value: metrics.gig_pct / MAX_GIG, color: "#14b8a6" },
+          { dx: 0, dy: 0, value: metrics.povertyRate / MAX_POVERTY, color: "#f59e0b" },
+        ];
+
+        dots.forEach((d) => {
+          dotsGroup
+            .append("circle")
+            .attr("cx", cx + d.dx)
+            .attr("cy", cy + d.dy)
+            .attr("r", (1.5 + Math.min(d.value, 1) * 2.5) * scale)
+            .attr("fill", d.color)
+            .attr("opacity", 0.85)
+            .attr("pointer-events", "none");
+        });
+      });
+    }, [activeOverlays, currentZoom]);
+
     // ── Update overlay layers (no full re-render) ───────────────────
 
     useEffect(() => {
