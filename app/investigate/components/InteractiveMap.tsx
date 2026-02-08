@@ -60,6 +60,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     const gRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
     const projectionRef = useRef<d3.GeoProjection | null>(null);
     const pathRef = useRef<d3.GeoPath<unknown, d3.GeoPermissibleObjects> | null>(null);
+    const stateFeaturesRef = useRef<GeoJSON.Feature[]>([]);
 
     const [stateTopoData, setStateTopoData] = useState<USTopology | null>(null);
     const [countyTopoData, setCountyTopoData] = useState<CountyTopology | null>(null);
@@ -75,6 +76,21 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     });
     const tooltipRafRef = useRef<number>(0);
     const [currentZoom, setCurrentZoom] = useState(1);
+    const [lensPos, setLensPos] = useState<{ x: number; y: number } | null>(null);
+    const lensTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+    // Clean up lens timer on unmount
+    useEffect(() => {
+      return () => {
+        if (lensTimerRef.current) clearTimeout(lensTimerRef.current);
+      };
+    }, []);
+
+    function triggerLens(x: number, y: number) {
+      if (lensTimerRef.current) clearTimeout(lensTimerRef.current);
+      setLensPos({ x, y });
+      lensTimerRef.current = setTimeout(() => setLensPos(null), 1050);
+    }
 
     // Neutral default fill: subtle slate gradient based on population
     const maxPopulation = Math.max(
@@ -200,21 +216,41 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     useEffect(() => {
       if (!stateTopoData || !svgRef.current || !containerRef.current) return;
 
-      const svg = d3.select(svgRef.current);
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
+      const container = containerRef.current;
+      const svgEl = svgRef.current;
+
+      const topoData = stateTopoData;
+
+      // Double-rAF: first frame commits layout, second frame reads final dimensions
+      let cancelled = false;
+      const rafId = requestAnimationFrame(() => {
+        if (cancelled) return;
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          renderMap(container, svgEl);
+        });
+      });
+
+      function renderMap(container: HTMLDivElement, svgEl: SVGSVGElement) {
+      const svg = d3.select(svgEl);
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // Guard against zero dimensions (layout not yet settled)
+      if (width <= 0 || height <= 0) return;
 
       svg.attr("width", width).attr("height", height);
       svg.selectAll("*").remove();
 
-      // Projection: Mercator centered on CONUS
+      // Projection: AlbersUsa (composite with AK/HI insets)
       const stateFeatures = topojson.feature(
-        stateTopoData,
-        stateTopoData.objects.states
+        topoData,
+        topoData.objects.states
       ).features;
+      stateFeaturesRef.current = stateFeatures;
 
       const projection = d3
-        .geoMercator()
+        .geoAlbersUsa()
         .fitSize([width, height], {
           type: "FeatureCollection",
           features: stateFeatures,
@@ -293,6 +329,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
             height / 2 - scale * cy,
           ];
 
+          // Glass lens at click point (screen-space)
+          const transform = d3.zoomTransform(svgEl);
+          const screenX = transform.applyX(cx);
+          const screenY = transform.applyY(cy);
+          triggerLens(screenX, screenY);
+
           if (zoomRef.current) {
             svg
               .transition()
@@ -307,8 +349,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       // ── Draw state borders (mesh) ───────────────────────────────────
 
       const stateMesh = topojson.mesh(
-        stateTopoData,
-        stateTopoData.objects.states,
+        topoData,
+        topoData.objects.states,
         (a, b) => a !== b
       );
 
@@ -368,7 +410,14 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       svg.on("dblclick", () => {
         svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
         onStateClick?.(/* clear */ "");
+        setLensPos(null);
       });
+      } // end renderMap
+
+      return () => {
+        cancelled = true;
+        cancelAnimationFrame(rafId);
+      };
     }, [stateTopoData, defaultFill, onStateClick]);
 
     // ── Update county layer when county data loads ────────────────────
@@ -409,6 +458,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       gRef.current
         .select(".states")
         .selectAll<SVGPathElement, d3.GeoPermissibleObjects>("path")
+        .transition()
+        .duration(400)
         .attr("fill", (d) => {
           const feature = d as GeoJSON.Feature & { id?: string | number };
           const fips = String(feature.id).padStart(2, "0");
@@ -449,9 +500,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           .attr("fill", "none")
           .attr("stroke", "#e0e0e0")
           .attr("stroke-width", 1.5)
-          .attr("stroke-opacity", 0.5)
+          .attr("stroke-opacity", 0)
           .attr("vector-effect", "non-scaling-stroke")
-          .attr("pointer-events", "none");
+          .attr("pointer-events", "none")
+          .transition()
+          .duration(400)
+          .attr("stroke-opacity", 0.5);
       }
 
       // Legislation
@@ -477,11 +531,16 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           )
           .join("path")
           .attr("d", (d) => path(d) || "")
-          .attr("fill", "rgba(239, 68, 68, 0.1)")
+          .attr("fill", "rgba(239, 68, 68, 0)")
           .attr("stroke", "#ef4444")
           .attr("stroke-width", 2.5)
+          .attr("stroke-opacity", 0)
           .attr("vector-effect", "non-scaling-stroke")
-          .attr("pointer-events", "none");
+          .attr("pointer-events", "none")
+          .transition()
+          .duration(400)
+          .attr("fill", "rgba(239, 68, 68, 0.1)")
+          .attr("stroke-opacity", 1);
       }
     }, [activeOverlays, stateTopoData]);
 
@@ -526,6 +585,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         height / 2 - scale * cy,
       ];
 
+      // Glass lens at centroid (screen-space)
+      const centroid = path.centroid(target);
+      const transform = d3.zoomTransform(svgRef.current!);
+      const screenX = transform.applyX(centroid[0]);
+      const screenY = transform.applyY(centroid[1]);
+      triggerLens(screenX, screenY);
+
       const svg = d3.select(svgRef.current);
       svg
         .transition()
@@ -540,20 +606,94 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
 
     useEffect(() => {
       if (!containerRef.current) return;
+      const container = containerRef.current;
 
       const observer = new ResizeObserver(() => {
-        if (stateTopoData && svgRef.current) {
-          const width = containerRef.current?.clientWidth || 0;
-          const height = containerRef.current?.clientHeight || 0;
-          d3.select(svgRef.current)
-            .attr("width", width)
-            .attr("height", height);
+        if (!stateTopoData || !svgRef.current || !gRef.current) return;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        if (width <= 0 || height <= 0) return;
+
+        const svg = d3.select(svgRef.current);
+        svg.attr("width", width).attr("height", height);
+
+        const features = stateFeaturesRef.current;
+        if (features.length === 0) return;
+
+        // Rebuild projection for new dimensions
+        const projection = d3
+          .geoAlbersUsa()
+          .fitSize([width, height], {
+            type: "FeatureCollection",
+            features,
+          });
+        const path = d3.geoPath().projection(projection);
+        projectionRef.current = projection;
+        pathRef.current = path;
+
+        const g = gRef.current;
+
+        // Redraw state paths
+        g.select(".states")
+          .selectAll<SVGPathElement, GeoJSON.Feature>("path")
+          .attr("d", (d) => path(d) || "");
+
+        // Redraw state border mesh
+        const stateMesh = topojson.mesh(
+          stateTopoData,
+          stateTopoData.objects.states,
+          (a, b) => a !== b
+        );
+        g.select(".state-borders").select("path").attr("d", path(stateMesh) || "");
+
+        // Redraw labels at new centroid positions
+        g.select(".labels").selectAll("text").remove();
+        features.forEach((feature) => {
+          const fips = String(feature.id).padStart(2, "0");
+          const stateAbbr = FIPS_TO_STATE[fips];
+          if (!stateAbbr) return;
+          const centroid = path.centroid(feature);
+          if (isNaN(centroid[0]) || isNaN(centroid[1])) return;
+          g.select(".labels")
+            .append("text")
+            .attr("x", centroid[0])
+            .attr("y", centroid[1])
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .attr("font-size", 10)
+            .attr("fill", "#4a4540")
+            .attr("pointer-events", "none")
+            .text(stateAbbr);
+        });
+
+        // Redraw county paths if loaded
+        if (countyTopoData) {
+          const countyFeatures = topojson.feature(
+            countyTopoData,
+            countyTopoData.objects.counties
+          ).features;
+          g.select(".counties")
+            .selectAll<SVGPathElement, GeoJSON.Feature>("path")
+            .attr("d", (d) => path(d as d3.GeoPermissibleObjects) || "");
+          // If no county paths existed, they'll be drawn by the county effect
+          if (g.select(".counties").selectAll("path").empty() && countyFeatures.length > 0) {
+            g.select(".counties")
+              .selectAll("path")
+              .data(countyFeatures)
+              .join("path")
+              .attr("d", (d) => path(d as d3.GeoPermissibleObjects) || "")
+              .attr("fill", "none")
+              .attr("stroke", "#1a1a1a")
+              .attr("stroke-width", 0.3)
+              .attr("vector-effect", "non-scaling-stroke")
+              .attr("pointer-events", "none");
+          }
         }
       });
 
-      observer.observe(containerRef.current);
+      observer.observe(container);
       return () => observer.disconnect();
-    }, [stateTopoData]);
+    }, [stateTopoData, countyTopoData]);
 
     // ── Render ────────────────────────────────────────────────────────
 
@@ -576,6 +716,15 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         onMouseMove={handleMouseMove}
       >
         <svg ref={svgRef} className="w-full h-full" />
+
+        {/* Glass lens zoom effect */}
+        {lensPos && (
+          <div
+            key={`lens-${lensPos.x}-${lensPos.y}`}
+            className="glass-lens"
+            style={{ left: lensPos.x, top: lensPos.y }}
+          />
+        )}
 
         {/* County loading indicator */}
         {countiesLoading && (

@@ -7,11 +7,19 @@ export type OverlayId =
   | "employment"
   | "legislation";
 
+export interface OverlayLegend {
+  type: "gradient" | "binary";
+  minLabel: string;
+  maxLabel: string;
+  stops: string[];
+}
+
 export interface OverlayConfig {
   id: OverlayId;
   label: string;
   color: string;
   description: string;
+  legend?: OverlayLegend;
 }
 
 export interface StateMetrics {
@@ -36,18 +44,36 @@ export const OVERLAY_CONFIGS: OverlayConfig[] = [
     label: "Population",
     color: "#3b82f6",
     description: "State population density",
+    legend: {
+      type: "gradient",
+      minLabel: "Low",
+      maxLabel: "39M+",
+      stops: ["#08306b", "#2171b5", "#6baed6", "#c6dbef"],
+    },
   },
   {
     id: "socioeconomic",
     label: "Socioeconomic",
     color: "#eab308",
     description: "Poverty rate & median income",
+    legend: {
+      type: "gradient",
+      minLabel: "0% poverty",
+      maxLabel: "20%+ poverty",
+      stops: ["#1a1500", "#eab308", "#fef08a"],
+    },
   },
   {
     id: "employment",
     label: "Employment",
     color: "#22c55e",
     description: "Unemployment & gig workforce",
+    legend: {
+      type: "gradient",
+      minLabel: "Low composite",
+      maxLabel: "High composite",
+      stops: ["#052e16", "#22c55e", "#86efac"],
+    },
   },
   {
     id: "legislation",
