@@ -12,9 +12,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "PhishGuard - Threat Intelligence & Infrastructure Mapping",
+  title: "MarketScope - US Market Intelligence Map",
   description:
-    "Map scam infrastructure graphs. Reveal connections between domains, IPs, registrants, and SSL certificates that expose coordinated phishing operations.",
+    "Interactive market intelligence platform with economic, demographic, and legislative data overlays across all 50 US states.",
   metadataBase: new URL("https://phishguard.projectlavos.com"),
   alternates: {
     canonical: "/",
@@ -24,17 +24,17 @@ export const metadata: Metadata = {
     follow: true,
   },
   openGraph: {
-    title: "PhishGuard - Threat Intelligence & Infrastructure Mapping",
+    title: "MarketScope - US Market Intelligence Map",
     description:
-      "Map scam infrastructure graphs. Reveal connections between domains, IPs, registrants, and SSL certificates that expose coordinated phishing operations.",
+      "Interactive market intelligence platform with economic, demographic, and legislative data overlays across all 50 US states.",
     url: "https://phishguard.projectlavos.com",
-    siteName: "PhishGuard",
+    siteName: "MarketScope",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "PhishGuard - Threat Intelligence Graph",
+        alt: "MarketScope - US Market Intelligence Map",
       },
     ],
     type: "website",
@@ -42,18 +42,18 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PhishGuard - Threat Intelligence & Infrastructure Mapping",
+    title: "MarketScope - US Market Intelligence Map",
     description:
-      "Map scam infrastructure graphs. Reveal connections between phishing domains, IPs, and certificates.",
+      "Interactive market intelligence with economic, demographic, and legislative data overlays across all 50 US states.",
     images: ["/og-image.png"],
   },
 };
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "PhishGuard",
-  applicationCategory: "SecurityApplication",
+  "@type": "WebApplication",
+  name: "MarketScope",
+  applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   offers: {
     "@type": "Offer",
@@ -61,7 +61,7 @@ const jsonLd = {
     priceCurrency: "USD",
   },
   description:
-    "Threat intelligence platform that maps scam infrastructure graphs, revealing phishing campaign connections through DNS, WHOIS, and SSL analysis.",
+    "Interactive market intelligence platform with economic, demographic, and legislative data overlays across all 50 US states. Zoomable choropleth map with county-level detail.",
   url: "https://phishguard.projectlavos.com",
   image: "https://phishguard.projectlavos.com/og-image.png",
   author: {
@@ -70,12 +70,12 @@ const jsonLd = {
     url: "https://projectlavos.com",
   },
   featureList: [
-    "Infrastructure graph mapping",
-    "DNS, WHOIS, SSL enrichment",
-    "Campaign clustering",
-    "Pivot point detection",
-    "ML-powered email classification",
-    "Risk scoring (0-100)",
+    "Population density choropleth",
+    "Income and poverty overlays",
+    "Employment and gig economy metrics",
+    "Legislative tracking by state",
+    "Interstate highway overlay",
+    "County-level zoom detail",
   ],
 };
 

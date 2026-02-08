@@ -1,16 +1,13 @@
 "use client";
 
-import { PhishGuardForm } from "./components/PhishGuardForm";
 import { ContactForm } from "./components/ContactForm";
-import { ApiStatus } from "./components/ApiStatus";
 import {
-  Shield,
-  Zap,
-  Brain,
-  Target,
-  Network,
+  BarChart3,
+  TrendingUp,
+  Map as MapIcon,
+  Landmark,
   Globe,
-  Lock,
+  Users,
   ArrowRight,
 } from "lucide-react";
 
@@ -21,23 +18,17 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#1a1a1a] bg-[#050505]/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
           <a href="/" className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-[#14b8a6]" />
+            <BarChart3 className="w-5 h-5 text-[#14b8a6]" />
             <span className="text-sm font-semibold text-[#f5f0eb] tracking-tight">
-              PhishGuard
+              MarketScope
             </span>
           </a>
           <div className="flex items-center gap-6">
             <a
-              href="#analyze"
-              className="text-xs uppercase tracking-[0.08em] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
-            >
-              Analyze
-            </a>
-            <a
               href="/investigate"
               className="text-xs uppercase tracking-[0.08em] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
             >
-              Investigate
+              Explore
             </a>
             <a
               href="#contact"
@@ -55,17 +46,18 @@ export default function Home() {
           <div className="max-w-3xl w-full space-y-8 text-center">
             <div className="animate-stagger-1">
               <p className="text-[11px] uppercase tracking-[0.2em] text-[#4a4540] mb-6">
-                Threat Intelligence Platform
+                Market Intelligence Platform
               </p>
               <h1 className="font-display text-5xl md:text-7xl tracking-[-0.03em] text-[#f5f0eb]">
-                See the{" "}
+                Map the{" "}
                 <em className="font-display italic text-[#14b8a6]">
-                  infrastructure
+                  opportunity
                 </em>
               </h1>
               <p className="mt-4 text-lg text-[#8a8580] max-w-xl mx-auto leading-relaxed">
-                Map the connections between phishing domains, IPs, registrants,
-                and certificates. The graph reveals what text cannot.
+                Interactive market intelligence across all 50 US states.
+                Economic, demographic, and legislative data overlays
+                that reveal where opportunity lives.
               </p>
             </div>
 
@@ -75,16 +67,16 @@ export default function Home() {
                 href="/investigate"
                 className="btn-elite flex items-center gap-2 px-6 py-3 bg-[#14b8a6] text-white rounded-lg text-sm font-medium"
               >
-                <Network className="w-4 h-4" />
-                Investigate Infrastructure
+                <MapIcon className="w-4 h-4" />
+                Explore Markets
                 <ArrowRight className="w-4 h-4" />
               </a>
               <a
-                href="#analyze"
+                href="#contact"
                 className="flex items-center gap-2 px-6 py-3 border border-[#2a2a2a] text-[#8a8580] rounded-lg text-sm hover:border-[#14b8a6]/30 hover:text-[#f5f0eb] transition-all"
               >
-                <Shield className="w-4 h-4" />
-                Classify Email
+                <TrendingUp className="w-4 h-4" />
+                Request Custom Data
               </a>
             </div>
 
@@ -93,29 +85,29 @@ export default function Home() {
               <div className="flex items-center gap-2.5">
                 <Globe className="w-4 h-4 text-[#3498db]" />
                 <div>
-                  <div className="text-sm font-medium text-[#f5f0eb]">9 Types</div>
-                  <div className="text-[10px] text-[#4a4540]">Node analysis</div>
+                  <div className="text-sm font-medium text-[#f5f0eb]">50 States</div>
+                  <div className="text-[10px] text-[#4a4540]">+ DC coverage</div>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                <Zap className="w-4 h-4 text-[#f97316]" />
+                <TrendingUp className="w-4 h-4 text-[#f97316]" />
                 <div>
-                  <div className="text-sm font-medium text-[#f5f0eb]">30+</div>
-                  <div className="text-[10px] text-[#4a4540]">API endpoints</div>
+                  <div className="text-sm font-medium text-[#f5f0eb]">5 Overlays</div>
+                  <div className="text-[10px] text-[#4a4540]">Data layers</div>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                <Brain className="w-4 h-4 text-[#14b8a6]" />
+                <Users className="w-4 h-4 text-[#14b8a6]" />
                 <div>
-                  <div className="text-sm font-medium text-[#f5f0eb]">2,039</div>
-                  <div className="text-[10px] text-[#4a4540]">ML features</div>
+                  <div className="text-sm font-medium text-[#f5f0eb]">330M+</div>
+                  <div className="text-[10px] text-[#4a4540]">Population data</div>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                <Target className="w-4 h-4 text-[#e74c3c]" />
+                <Landmark className="w-4 h-4 text-[#ef4444]" />
                 <div>
-                  <div className="text-sm font-medium text-[#f5f0eb]">0-100</div>
-                  <div className="text-[10px] text-[#4a4540]">Risk scoring</div>
+                  <div className="text-sm font-medium text-[#f5f0eb]">Real-Time</div>
+                  <div className="text-[10px] text-[#4a4540]">Legislative tracking</div>
                 </div>
               </div>
             </div>
@@ -133,84 +125,56 @@ export default function Home() {
                 Capabilities
               </p>
               <h2 className="font-display text-3xl md:text-4xl text-[#f5f0eb] tracking-[-0.02em]">
-                From a single{" "}
+                From raw{" "}
                 <em className="font-display italic text-[#14b8a6]">
-                  artifact
+                  data
                 </em>{" "}
-                to the full campaign
+                to market clarity
               </h2>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
               <div className="card-glass rounded-xl p-6 space-y-3">
                 <div className="w-10 h-10 rounded-lg bg-[#3498db]/10 flex items-center justify-center">
-                  <Network className="w-5 h-5 text-[#3498db]" />
+                  <TrendingUp className="w-5 h-5 text-[#3498db]" />
                 </div>
                 <h3 className="text-sm font-medium text-[#f5f0eb]">
-                  Infrastructure Mapping
+                  Economic Overlays
                 </h3>
                 <p className="text-xs text-[#8a8580] leading-relaxed">
-                  Build directed graphs connecting domains, IPs, nameservers,
-                  registrants, and SSL certificates. See how 15 phishing sites
-                  share one IP.
+                  Population density, median income, poverty rates, and
+                  employment statistics. See economic health at a glance
+                  with color-coded choropleth maps.
+                </p>
+              </div>
+
+              <div className="card-glass rounded-xl p-6 space-y-3">
+                <div className="w-10 h-10 rounded-lg bg-[#ef4444]/10 flex items-center justify-center">
+                  <Landmark className="w-5 h-5 text-[#ef4444]" />
+                </div>
+                <h3 className="text-sm font-medium text-[#f5f0eb]">
+                  Legislative Intelligence
+                </h3>
+                <p className="text-xs text-[#8a8580] leading-relaxed">
+                  Track state-level regulations, data privacy laws, and
+                  consumer protection legislation. Understand the
+                  regulatory landscape before you enter a market.
                 </p>
               </div>
 
               <div className="card-glass rounded-xl p-6 space-y-3">
                 <div className="w-10 h-10 rounded-lg bg-[#14b8a6]/10 flex items-center justify-center">
-                  <Globe className="w-5 h-5 text-[#14b8a6]" />
+                  <MapIcon className="w-5 h-5 text-[#14b8a6]" />
                 </div>
                 <h3 className="text-sm font-medium text-[#f5f0eb]">
-                  Deep Enrichment
+                  Geographic Analysis
                 </h3>
                 <p className="text-xs text-[#8a8580] leading-relaxed">
-                  DNS records, WHOIS registration, SSL certificate fingerprints,
-                  carrier lookup, VoIP detection. Every artifact enriched
-                  automatically.
+                  Zoomable map with county-level detail, interstate highway
+                  overlays, and state-by-state comparison. Click any state
+                  to drill down into local metrics.
                 </p>
               </div>
-
-              <div className="card-glass rounded-xl p-6 space-y-3">
-                <div className="w-10 h-10 rounded-lg bg-[#e74c3c]/10 flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-[#e74c3c]" />
-                </div>
-                <h3 className="text-sm font-medium text-[#f5f0eb]">
-                  Risk Scoring
-                </h3>
-                <p className="text-xs text-[#8a8580] leading-relaxed">
-                  Weighted risk assessment: domain age, WHOIS privacy,
-                  registrar reputation, VoIP indicators, SSL anomalies. Score
-                  0-100 per artifact.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Accent separator */}
-        <div className="accent-line max-w-4xl mx-auto" />
-
-        {/* Email Classification Section */}
-        <section id="analyze" className="py-24 px-4">
-          <div className="max-w-3xl mx-auto space-y-8 text-center">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-[#4a4540] mb-4">
-                Email Analysis
-              </p>
-              <h2 className="font-display text-3xl md:text-4xl text-[#f5f0eb] tracking-[-0.02em]">
-                Classify suspicious{" "}
-                <em className="font-display italic text-[#14b8a6]">emails</em>
-              </h2>
-              <p className="mt-3 text-sm text-[#8a8580]">
-                ML-powered classification with 87% accuracy, analyzing 2,039
-                features in under 15ms.
-              </p>
-            </div>
-
-            <PhishGuardForm />
-
-            <div className="flex justify-center">
-              <ApiStatus />
             </div>
           </div>
         </section>
@@ -237,8 +201,8 @@ export default function Home() {
                 <em className="font-display italic text-[#14b8a6]">demo</em>
               </h2>
               <p className="mt-3 text-sm text-[#8a8580]">
-                See how PhishGuard can map your organization&apos;s threat
-                landscape.
+                See how MarketScope can help you identify and evaluate
+                market opportunities across the United States.
               </p>
             </div>
             <ContactForm />

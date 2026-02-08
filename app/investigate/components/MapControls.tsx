@@ -1,26 +1,18 @@
 "use client";
 
 import {
-  Network,
-  Layers,
-  Target,
   ZoomIn,
   ZoomOut,
   Maximize2,
   Box,
   MapPin,
   X,
+  Layers,
 } from "lucide-react";
-import type { GraphStats, PivotPoint, NodeType } from "@/lib/graph-types";
-import { NODE_COLORS, NODE_LABELS } from "@/lib/graph-types";
 import type { OverlayId } from "@/lib/overlay-data";
 import { OVERLAY_CONFIGS } from "@/lib/overlay-data";
 
 interface MapControlsProps {
-  stats: GraphStats | null;
-  pivotPoints: PivotPoint[];
-  activeTypes: Set<NodeType>;
-  stateStats: Map<string, number>;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onReset: () => void;
@@ -33,10 +25,6 @@ interface MapControlsProps {
 }
 
 export default function MapControls({
-  stats,
-  pivotPoints,
-  activeTypes,
-  stateStats,
   onZoomIn,
   onZoomOut,
   onReset,
@@ -49,79 +37,19 @@ export default function MapControls({
 }: MapControlsProps) {
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-[#1a1a1a] bg-[#050505]/80 backdrop-blur-sm">
-      {/* Left: Stats */}
-      <div className="flex items-center gap-4">
-        {stats ? (
-          <>
-            <div className="flex items-center gap-1.5">
-              <Network className="w-4 h-4 text-[#4a4540]" />
-              <span className="text-sm text-[#8a8580]">
-                <span className="text-[#f5f0eb] font-medium">
-                  {stats.node_count}
-                </span>{" "}
-                nodes
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm text-[#8a8580]">
-                <span className="text-[#f5f0eb] font-medium">
-                  {stats.edge_count}
-                </span>{" "}
-                edges
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-[#4a4540]" />
-              <span className="text-sm text-[#8a8580]">
-                <span className="text-[#f5f0eb] font-medium">
-                  {stats.clusters}
-                </span>{" "}
-                clusters
-              </span>
-            </div>
-            {pivotPoints.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 text-[#f39c12]" />
-                <span className="text-sm text-[#8a8580]">
-                  <span className="text-[#f5f0eb] font-medium">
-                    {pivotPoints.length}
-                  </span>{" "}
-                  pivots
-                </span>
-              </div>
-            )}
-          </>
-        ) : (
-          <span className="text-sm text-[#4a4540]">No data loaded</span>
-        )}
-      </div>
-
-      {/* Center: Geographic info */}
+      {/* Left: Data layer toggles */}
       <div className="flex items-center gap-3">
-        {stateStats.size > 0 && (
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-4 h-4 text-[#e67e22]" />
-            <span className="text-sm text-[#8a8580]">
-              <span className="text-[#e67e22] font-medium">
-                {stateStats.size}
-              </span>{" "}
-              state{stateStats.size !== 1 ? "s" : ""}
+        <div className="flex items-center gap-1.5 mr-2">
+          <Layers className="w-4 h-4 text-[#4a4540]" />
+          <span className="text-xs text-[#4a4540] uppercase tracking-[0.1em] font-medium">
+            Data Layers
+          </span>
+          {activeOverlays.size > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#14b8a6]/10 text-[10px] text-[#14b8a6] font-medium">
+              {activeOverlays.size}
             </span>
-          </div>
-        )}
-        {selectedState && (
-          <button
-            onClick={onClearState}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#14b8a6]/10 border border-[#14b8a6]/20 text-sm text-[#14b8a6] hover:bg-[#14b8a6]/20 transition-colors"
-          >
-            {selectedState}
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Center-right: Overlay toggles */}
-      <div className="flex items-center gap-1.5">
+          )}
+        </div>
         {OVERLAY_CONFIGS.map((config) => {
           const active = activeOverlays.has(config.id);
           return (
@@ -146,26 +74,22 @@ export default function MapControls({
         })}
       </div>
 
-      {/* Right: Zoom controls + legend */}
+      {/* Center: Selected state chip */}
+      <div className="flex items-center gap-3">
+        {selectedState && (
+          <button
+            onClick={onClearState}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#14b8a6]/10 border border-[#14b8a6]/20 text-sm text-[#14b8a6] hover:bg-[#14b8a6]/20 transition-colors"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            {selectedState}
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Right: Zoom controls */}
       <div className="flex items-center gap-2">
-        {/* Legend dots */}
-        <div className="flex items-center gap-2 mr-3">
-          {Array.from(activeTypes).map((type) => (
-            <div key={type} className="flex items-center gap-1">
-              <div
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: NODE_COLORS[type] }}
-              />
-              <span className="text-xs text-[#4a4540]">
-                {NODE_LABELS[type]}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="h-4 w-px bg-[#1a1a1a]" />
-
-        {/* Zoom controls */}
         <button
           onClick={onZoomIn}
           className="p-1.5 rounded hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
