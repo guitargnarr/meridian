@@ -112,30 +112,30 @@ export default function InvestigatePage() {
             href="/"
             className="flex items-center gap-2 text-[#f5f0eb] hover:text-[#14b8a6] transition-colors"
           >
-            <Shield className="w-5 h-5 text-[#14b8a6]" />
-            <span className="text-base font-semibold tracking-tight">
+            <Shield className="w-6 h-6 text-[#14b8a6]" />
+            <span className="text-lg font-semibold tracking-tight">
               PhishGuard
             </span>
           </a>
           <div className="h-4 w-px bg-[#1a1a1a]" />
-          <span className="text-xs text-[#4a4540] uppercase tracking-[0.15em] font-medium">
+          <span className="text-sm text-[#4a4540] uppercase tracking-[0.15em] font-medium">
             Infrastructure Graph
           </span>
         </div>
         <nav className="flex items-center gap-4">
           <a
             href="/"
-            className="text-[13px] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
+            className="text-sm text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
           >
             Home
           </a>
           <a
             href="/investigate"
-            className="text-[13px] text-[#14b8a6]"
+            className="text-sm text-[#14b8a6]"
           >
             Investigate
           </a>
-          <span className="text-[13px] text-[#4a4540] cursor-default" title="Coming soon">
+          <span className="text-sm text-[#4a4540] cursor-default" title="Coming soon">
             Intel
           </span>
         </nav>
@@ -151,21 +151,21 @@ export default function InvestigatePage() {
         {/* Center - Visualization */}
         <main className="flex-1 flex flex-col min-w-0">
           {/* Tab bar */}
-          <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[#1a1a1a] bg-[#050505]">
+          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-[#1a1a1a] bg-[#050505]">
             <TabButton
               active={vizMode === "map"}
               onClick={() => setVizMode("map")}
-              icon={<MapIcon className="w-3 h-3" />}
+              icon={<MapIcon className="w-4 h-4" />}
               label="Map"
             />
             <TabButton
               active={vizMode === "graph"}
               onClick={() => setVizMode("graph")}
-              icon={<GitFork className="w-3 h-3" />}
+              icon={<GitFork className="w-4 h-4" />}
               label="Graph"
             />
             {vizMode === "map" && stateStats.size > 0 && (
-              <span className="ml-auto text-xs text-[#4a4540]">
+              <span className="ml-auto text-sm text-[#4a4540]">
                 <span className="text-[#e67e22] font-medium">{stateStats.size}</span> states
               </span>
             )}
@@ -184,7 +184,7 @@ export default function InvestigatePage() {
             }
           >
             {error && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs">
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 {error}
               </div>
@@ -276,7 +276,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[13px] font-medium transition-colors ${
+      className={`flex items-center gap-2 px-3.5 py-2 rounded text-sm font-medium transition-colors ${
         active
           ? "bg-[#14b8a6]/10 text-[#14b8a6] border border-[#14b8a6]/20"
           : "text-[#4a4540] hover:text-[#8a8580] border border-transparent"
@@ -297,10 +297,10 @@ function EmptyState({ loading }: { loading: boolean }) {
         {loading ? (
           <>
             <div className="w-12 h-12 mx-auto rounded-full border-2 border-[#14b8a6] border-t-transparent animate-spin" />
-            <p className="text-sm text-[#8a8580]">
+            <p className="text-base text-[#8a8580]">
               Building infrastructure graph...
             </p>
-            <p className="text-xs text-[#4a4540]">
+            <p className="text-sm text-[#4a4540]">
               Enriching domains, resolving DNS, checking SSL...
             </p>
           </>
@@ -310,10 +310,10 @@ function EmptyState({ loading }: { loading: boolean }) {
               <Shield className="w-8 h-8 text-[#14b8a6]/40" />
             </div>
             <div>
-              <p className="text-sm text-[#8a8580]">
+              <p className="text-base text-[#8a8580]">
                 Paste a suspicious message or enter domains to investigate
               </p>
-              <p className="text-xs text-[#4a4540] mt-1">
+              <p className="text-sm text-[#4a4540] mt-1">
                 PhishGuard will map the infrastructure graph and reveal
                 connections
               </p>

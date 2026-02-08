@@ -48,14 +48,14 @@ export default function MapControls({
   onToggleOverlay,
 }: MapControlsProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#1a1a1a] bg-[#050505]/80 backdrop-blur-sm">
+    <div className="flex items-center justify-between px-5 py-3 border-t border-[#1a1a1a] bg-[#050505]/80 backdrop-blur-sm">
       {/* Left: Stats */}
       <div className="flex items-center gap-4">
         {stats ? (
           <>
             <div className="flex items-center gap-1.5">
-              <Network className="w-3.5 h-3.5 text-[#4a4540]" />
-              <span className="text-xs text-[#8a8580]">
+              <Network className="w-4 h-4 text-[#4a4540]" />
+              <span className="text-sm text-[#8a8580]">
                 <span className="text-[#f5f0eb] font-medium">
                   {stats.node_count}
                 </span>{" "}
@@ -63,7 +63,7 @@ export default function MapControls({
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#8a8580]">
+              <span className="text-sm text-[#8a8580]">
                 <span className="text-[#f5f0eb] font-medium">
                   {stats.edge_count}
                 </span>{" "}
@@ -71,8 +71,8 @@ export default function MapControls({
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-[#4a4540]" />
-              <span className="text-xs text-[#8a8580]">
+              <Layers className="w-4 h-4 text-[#4a4540]" />
+              <span className="text-sm text-[#8a8580]">
                 <span className="text-[#f5f0eb] font-medium">
                   {stats.clusters}
                 </span>{" "}
@@ -82,7 +82,7 @@ export default function MapControls({
             {pivotPoints.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-[#f39c12]" />
-                <span className="text-xs text-[#8a8580]">
+                <span className="text-sm text-[#8a8580]">
                   <span className="text-[#f5f0eb] font-medium">
                     {pivotPoints.length}
                   </span>{" "}
@@ -92,7 +92,7 @@ export default function MapControls({
             )}
           </>
         ) : (
-          <span className="text-xs text-[#4a4540]">No data loaded</span>
+          <span className="text-sm text-[#4a4540]">No data loaded</span>
         )}
       </div>
 
@@ -100,8 +100,8 @@ export default function MapControls({
       <div className="flex items-center gap-3">
         {stateStats.size > 0 && (
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3 h-3 text-[#e67e22]" />
-            <span className="text-xs text-[#8a8580]">
+            <MapPin className="w-4 h-4 text-[#e67e22]" />
+            <span className="text-sm text-[#8a8580]">
               <span className="text-[#e67e22] font-medium">
                 {stateStats.size}
               </span>{" "}
@@ -112,23 +112,23 @@ export default function MapControls({
         {selectedState && (
           <button
             onClick={onClearState}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#14b8a6]/10 border border-[#14b8a6]/20 text-xs text-[#14b8a6] hover:bg-[#14b8a6]/20 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#14b8a6]/10 border border-[#14b8a6]/20 text-sm text-[#14b8a6] hover:bg-[#14b8a6]/20 transition-colors"
           >
             {selectedState}
-            <X className="w-2.5 h-2.5" />
+            <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {/* Center-right: Overlay toggles */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {OVERLAY_CONFIGS.map((config) => {
           const active = activeOverlays.has(config.id);
           return (
             <button
               key={config.id}
               onClick={() => onToggleOverlay(config.id)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border transition-colors ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium border transition-colors ${
                 active
                   ? "border-current/30 bg-current/10"
                   : "text-[#4a4540] border-transparent hover:text-[#8a8580] hover:bg-[#1a1a1a]"
@@ -137,7 +137,7 @@ export default function MapControls({
               title={config.description}
             >
               <span
-                className="w-2 h-2 rounded-full shrink-0"
+                className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: active ? config.color : "#4a4540" }}
               />
               {config.label}
@@ -149,14 +149,14 @@ export default function MapControls({
       {/* Right: Zoom controls + legend */}
       <div className="flex items-center gap-2">
         {/* Legend dots */}
-        <div className="flex items-center gap-1.5 mr-2">
+        <div className="flex items-center gap-2 mr-3">
           {Array.from(activeTypes).map((type) => (
-            <div key={type} className="flex items-center gap-0.5">
+            <div key={type} className="flex items-center gap-1">
               <div
-                className="w-2 h-2 rounded-full"
+                className="w-2.5 h-2.5 rounded-full"
                 style={{ backgroundColor: NODE_COLORS[type] }}
               />
-              <span className="text-[10px] text-[#4a4540]">
+              <span className="text-xs text-[#4a4540]">
                 {NODE_LABELS[type]}
               </span>
             </div>
@@ -168,35 +168,35 @@ export default function MapControls({
         {/* Zoom controls */}
         <button
           onClick={onZoomIn}
-          className="p-1 rounded hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
+          className="p-1.5 rounded hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
           title="Zoom in"
         >
-          <ZoomIn className="w-3.5 h-3.5" />
+          <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={onZoomOut}
-          className="p-1 rounded hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
+          className="p-1.5 rounded hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
           title="Zoom out"
         >
-          <ZoomOut className="w-3.5 h-3.5" />
+          <ZoomOut className="w-4 h-4" />
         </button>
         <button
           onClick={onReset}
-          className="p-1 rounded hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
+          className="p-1.5 rounded hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
           title="Reset view"
         >
-          <Maximize2 className="w-3.5 h-3.5" />
+          <Maximize2 className="w-4 h-4" />
         </button>
         <button
           onClick={onToggleTilt}
-          className={`p-1 rounded transition-colors ${
+          className={`p-1.5 rounded transition-colors ${
             isTilted
               ? "bg-[#14b8a6]/10 text-[#14b8a6]"
               : "hover:bg-[#1a1a1a] text-[#8a8580] hover:text-[#f5f0eb]"
           }`}
           title="Toggle 2.5D tilt"
         >
-          <Box className="w-3.5 h-3.5" />
+          <Box className="w-4 h-4" />
         </button>
       </div>
     </div>
