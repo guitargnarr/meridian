@@ -13,7 +13,7 @@ import * as topojson from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import { FIPS_TO_STATE, STATE_NAMES } from "@/lib/fips-utils";
 import type { OverlayId } from "@/lib/overlay-data";
-import { STATE_METRICS, formatPopulation, formatIncome } from "@/lib/overlay-data";
+import { STATE_METRICS, METRIC_MAXES, formatPopulation, formatIncome } from "@/lib/overlay-data";
 import { US_INTERSTATES } from "@/lib/data/us-interstates";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -76,6 +76,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     });
     const tooltipRafRef = useRef<number>(0);
     const [currentZoom, setCurrentZoom] = useState(1);
+    const [resizeGen, setResizeGen] = useState(0);
     const [lensPos, setLensPos] = useState<{ x: number; y: number } | null>(null);
     const lensTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -471,6 +472,78 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         });
     }, [activeOverlays, getOverlayFill, defaultFill]);
 
+    // ── Metric cluster dots ──────────────────────────────────────────
+
+    useEffect(() => {
+      if (!gRef.current || !pathRef.current) return;
+
+      const g = gRef.current;
+      const pathGen = pathRef.current;
+      const features = stateFeaturesRef.current;
+
+      // Remove old dots
+      g.selectAll(".metric-dots").remove();
+
+      // Hide dots when metric-encoding overlays are active
+      const metricOverlaysActive =
+        activeOverlays.has("population") ||
+        activeOverlays.has("socioeconomic") ||
+        activeOverlays.has("employment");
+
+      if (metricOverlaysActive || features.length === 0) return;
+
+      // Hide dots when zoomed out too far
+      if (currentZoom < 0.5) return;
+
+      // Insert before labels so dots sit below label text in z-order
+      const dotsGroup = g.insert("g", ".labels").attr("class", "metric-dots");
+      const scale = 1 / Math.sqrt(Math.max(currentZoom, 0.5));
+
+      // Build flat array of all dot data for D3 data-join
+      const dotData: { cx: number; cy: number; r: number; color: string }[] = [];
+
+      features.forEach((feature) => {
+        const fips = String(feature.id).padStart(2, "0");
+        const abbr = FIPS_TO_STATE[fips];
+        const metrics = abbr ? STATE_METRICS[abbr] : null;
+        if (!metrics || !abbr) return;
+
+        const centroid = pathGen.centroid(feature);
+        if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return;
+
+        const [cx, cy] = centroid;
+        const offset = 6 * scale;
+
+        const defs = [
+          { dx: 0, dy: -offset, value: metrics.population / METRIC_MAXES.population, color: "#3b82f6" },
+          { dx: offset, dy: 0, value: metrics.medianIncome / METRIC_MAXES.medianIncome, color: "#22c55e" },
+          { dx: 0, dy: offset, value: metrics.unemploymentRate / METRIC_MAXES.unemploymentRate, color: "#eab308" },
+          { dx: -offset, dy: 0, value: metrics.gig_pct / METRIC_MAXES.gig_pct, color: "#14b8a6" },
+          { dx: 0, dy: 0, value: metrics.povertyRate / METRIC_MAXES.povertyRate, color: "#f59e0b" },
+        ];
+
+        defs.forEach((d) => {
+          dotData.push({
+            cx: cx + d.dx,
+            cy: cy + d.dy,
+            r: (1.5 + Math.min(d.value, 1) * 2.5) * scale,
+            color: d.color,
+          });
+        });
+      });
+
+      dotsGroup
+        .selectAll("circle")
+        .data(dotData)
+        .join("circle")
+        .attr("cx", (d) => d.cx)
+        .attr("cy", (d) => d.cy)
+        .attr("r", (d) => d.r)
+        .attr("fill", (d) => d.color)
+        .attr("opacity", 0.85)
+        .attr("pointer-events", "none");
+    }, [activeOverlays, currentZoom, resizeGen]);
+
     // ── Update overlay layers (no full re-render) ───────────────────
 
     useEffect(() => {
@@ -665,6 +738,10 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
             .attr("pointer-events", "none")
             .text(stateAbbr);
         });
+
+        // Invalidate metric dots so useEffect redraws with new projection
+        g.selectAll(".metric-dots").remove();
+        setResizeGen((n) => n + 1);
 
         // Redraw county paths if loaded
         if (countyTopoData) {
