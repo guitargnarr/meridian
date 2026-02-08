@@ -11,7 +11,6 @@ import {
 import * as d3 from "d3";
 import * as topojson from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
-import type { GraphResponse } from "@/lib/graph-types";
 import { FIPS_TO_STATE, STATE_NAMES } from "@/lib/fips-utils";
 import type { OverlayId } from "@/lib/overlay-data";
 import { STATE_METRICS, formatPopulation, formatIncome } from "@/lib/overlay-data";
@@ -37,8 +36,6 @@ type CountyTopology = Topology<{
 }>;
 
 interface InteractiveMapProps {
-  stateStats: Map<string, number>;
-  graphData: GraphResponse | null;
   onStateClick?: (stateAbbr: string) => void;
   selectedState?: string | null;
   activeOverlays?: Set<OverlayId>;
@@ -54,7 +51,7 @@ export interface InteractiveMapHandle {
 
 const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
   function InteractiveMap(
-    { stateStats, graphData, onStateClick, selectedState, activeOverlays = new Set() },
+    { onStateClick, selectedState, activeOverlays = new Set() },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -69,9 +66,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     const [countiesLoading, setCountiesLoading] = useState(false);
     const [hoverInfo, setHoverInfo] = useState<{
       feature: string | null;
-      count: number;
       stateAbbr: string | null;
-    }>({ feature: null, count: 0, stateAbbr: null });
+    }>({ feature: null, stateAbbr: null });
     const tooltipPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({
       x: 0,
@@ -80,30 +76,30 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     const tooltipRafRef = useRef<number>(0);
     const [currentZoom, setCurrentZoom] = useState(1);
 
-    const maxCount = Math.max(1, ...Array.from(stateStats.values()));
-
-    // Color scale: void -> teal -> orange for density
-    const colorScale = useCallback(
-      (count: number) => {
-        if (count === 0) return "#0a0a0a";
-        const t = count / maxCount;
-        return d3.interpolateRgbBasis(["#0d3d36", "#14b8a6", "#e67e22"])(t);
-      },
-      [maxCount]
-    );
-
-    // ── Overlay fill logic ─────────────────────────────────────────────
-
+    // Neutral default fill: subtle slate gradient based on population
     const maxPopulation = Math.max(
       ...Object.values(STATE_METRICS).map((m) => m.population)
     );
+
+    const defaultFill = useCallback(
+      (stateAbbr: string): string => {
+        const metrics = STATE_METRICS[stateAbbr];
+        if (!metrics) return "#0a0a0a";
+        const t = metrics.population / maxPopulation;
+        return d3.interpolateRgbBasis(["#0a0a0a", "#141414", "#1e1e1e"])(
+          Math.max(0.1, t)
+        );
+      },
+      [maxPopulation]
+    );
+
+    // ── Overlay fill logic ─────────────────────────────────────────────
 
     const getOverlayFill = useCallback(
       (stateAbbr: string): string | null => {
         const metrics = STATE_METRICS[stateAbbr];
         if (!metrics) return null;
 
-        // Priority: employment > socioeconomic > population > default threat
         if (activeOverlays.has("employment")) {
           const composite =
             (1 - metrics.unemploymentRate / 10) * 0.6 +
@@ -243,8 +239,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       const borderGroup = g.append("g").attr("class", "state-borders");
 
       // Overlay layers (between borders and labels)
-      const highwayGroup = g.append("g").attr("class", "overlay-highways");
-      const legislationGroup = g.append("g").attr("class", "overlay-legislation");
+      g.append("g").attr("class", "overlay-highways");
+      g.append("g").attr("class", "overlay-legislation");
 
       // Label layer
       const labelGroup = g.append("g").attr("class", "labels").style("opacity", 0);
@@ -259,23 +255,22 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         .attr("fill", (d) => {
           const fips = String(d.id).padStart(2, "0");
           const stateAbbr = FIPS_TO_STATE[fips];
-          const count = stateAbbr ? stateStats.get(stateAbbr) || 0 : 0;
-          return colorScale(count);
+          if (!stateAbbr) return "#0a0a0a";
+          return defaultFill(stateAbbr);
         })
         .attr("stroke", "none")
         .attr("cursor", "pointer")
         .on("mouseenter", function (_, d) {
           const fips = String(d.id).padStart(2, "0");
           const stateAbbr = FIPS_TO_STATE[fips];
-          const count = stateAbbr ? stateStats.get(stateAbbr) || 0 : 0;
           const name = stateAbbr
             ? STATE_NAMES[stateAbbr] || stateAbbr
             : "Unknown";
-          setHoverInfo({ feature: name, count, stateAbbr: stateAbbr || null });
+          setHoverInfo({ feature: name, stateAbbr: stateAbbr || null });
           d3.select(this).attr("stroke", "#14b8a6").attr("stroke-width", 1.5);
         })
         .on("mouseleave", function () {
-          setHoverInfo({ feature: null, count: 0, stateAbbr: null });
+          setHoverInfo({ feature: null, stateAbbr: null });
           d3.select(this).attr("stroke", "none");
         })
         .on("click", (event, d) => {
@@ -341,7 +336,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           .attr("y", centroid[1])
           .attr("text-anchor", "middle")
           .attr("dominant-baseline", "central")
-          .attr("font-size", 8)
+          .attr("font-size", 10)
           .attr("fill", "#4a4540")
           .attr("pointer-events", "none")
           .text(stateAbbr);
@@ -374,7 +369,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
         onStateClick?.(/* clear */ "");
       });
-    }, [stateTopoData, stateStats, colorScale, onStateClick]);
+    }, [stateTopoData, defaultFill, onStateClick]);
 
     // ── Update county layer when county data loads ────────────────────
 
@@ -407,7 +402,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       countyGroup.style("opacity", currentZoom > 3 ? 1 : 0);
     }, [countyTopoData, currentZoom]);
 
-    // ── Update fills when stateStats change ────────────────────────────
+    // ── Update fills when overlays change ──────────────────────────────
 
     useEffect(() => {
       if (!gRef.current) return;
@@ -418,12 +413,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           const feature = d as GeoJSON.Feature & { id?: string | number };
           const fips = String(feature.id).padStart(2, "0");
           const stateAbbr = FIPS_TO_STATE[fips];
-          const overlayFill = stateAbbr ? getOverlayFill(stateAbbr) : null;
+          if (!stateAbbr) return "#0a0a0a";
+          const overlayFill = getOverlayFill(stateAbbr);
           if (overlayFill) return overlayFill;
-          const count = stateAbbr ? stateStats.get(stateAbbr) || 0 : 0;
-          return colorScale(count);
+          return defaultFill(stateAbbr);
         });
-    }, [stateStats, colorScale, activeOverlays, getOverlayFill]);
+    }, [activeOverlays, getOverlayFill, defaultFill]);
 
     // ── Update overlay layers (no full re-render) ───────────────────
 
@@ -547,7 +542,6 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       if (!containerRef.current) return;
 
       const observer = new ResizeObserver(() => {
-        // Re-render on resize by clearing and re-triggering
         if (stateTopoData && svgRef.current) {
           const width = containerRef.current?.clientWidth || 0;
           const height = containerRef.current?.clientHeight || 0;
@@ -568,7 +562,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         <div className="h-full flex items-center justify-center">
           <div className="text-center space-y-3">
             <div className="w-8 h-8 mx-auto rounded-full border-2 border-[#14b8a6] border-t-transparent animate-spin" />
-            <p className="text-[10px] text-[#4a4540]">Loading map data...</p>
+            <p className="text-sm text-[#4a4540]">Loading map data...</p>
           </div>
         </div>
       );
@@ -583,20 +577,9 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       >
         <svg ref={svgRef} className="w-full h-full" />
 
-        {/* Empty state overlay */}
-        {!graphData && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center space-y-3">
-              <p className="text-xs text-[#4a4540]">
-                Submit data to reveal geographic intelligence
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* County loading indicator */}
         {countiesLoading && (
-          <div className="absolute top-3 right-3 flex items-center gap-2 px-2 py-1 rounded bg-[#0a0a0a]/90 border border-[#1a1a1a] text-[9px] text-[#4a4540]">
+          <div className="absolute top-3 right-3 flex items-center gap-2 px-2 py-1 rounded bg-[#0a0a0a]/90 border border-[#1a1a1a] text-xs text-[#4a4540]">
             <div className="w-3 h-3 rounded-full border border-[#14b8a6] border-t-transparent animate-spin" />
             Loading counties...
           </div>
@@ -604,7 +587,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
 
         {/* Zoom level indicator */}
         {currentZoom > 1.1 && (
-          <div className="absolute top-3 left-3 px-2 py-1 rounded bg-[#0a0a0a]/90 border border-[#1a1a1a] text-[9px] text-[#4a4540]">
+          <div className="absolute top-3 left-3 px-2 py-1 rounded bg-[#0a0a0a]/90 border border-[#1a1a1a] text-xs text-[#4a4540]">
             {currentZoom.toFixed(1)}x
           </div>
         )}
@@ -612,38 +595,46 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         {/* Tooltip */}
         {hoverInfo.feature && (
           <div
-            className="absolute pointer-events-none z-10 px-2.5 py-1.5 rounded-lg bg-[#0a0a0a]/95 border border-[#2a2a2a] backdrop-blur-sm text-[10px] whitespace-nowrap"
+            className="absolute pointer-events-none z-10 px-3 py-2 rounded-lg bg-[#0a0a0a]/95 border border-[#2a2a2a] backdrop-blur-sm text-sm whitespace-nowrap"
             style={{
               left: tooltipPos.x + 14,
               top: tooltipPos.y - 10,
             }}
           >
             <span className="text-[#f5f0eb] font-medium">{hoverInfo.feature}</span>
-            {hoverInfo.count > 0 && (
-              <span className="text-[#14b8a6] ml-2">
-                {hoverInfo.count} threat{hoverInfo.count !== 1 ? "s" : ""}
-              </span>
-            )}
-            {hoverInfo.stateAbbr && STATE_METRICS[hoverInfo.stateAbbr] && activeOverlays.size > 0 && (
-              <div className="mt-1 pt-1 border-t border-[#2a2a2a] space-y-0.5">
-                {activeOverlays.has("population") && (
-                  <div className="text-[#3b82f6]">
-                    {formatPopulation(STATE_METRICS[hoverInfo.stateAbbr].population)} residents
-                  </div>
-                )}
-                {activeOverlays.has("socioeconomic") && (
-                  <div className="text-[#eab308]">
-                    {STATE_METRICS[hoverInfo.stateAbbr].povertyRate}% poverty, {formatIncome(STATE_METRICS[hoverInfo.stateAbbr].medianIncome)} median
-                  </div>
-                )}
-                {activeOverlays.has("employment") && (
-                  <div className="text-[#22c55e]">
-                    {STATE_METRICS[hoverInfo.stateAbbr].unemploymentRate}% unemployed, {STATE_METRICS[hoverInfo.stateAbbr].gig_pct}% gig
-                  </div>
-                )}
-                {activeOverlays.has("legislation") && STATE_METRICS[hoverInfo.stateAbbr].hasActiveLegislation && (
-                  <div className="text-[#ef4444]">
-                    {STATE_METRICS[hoverInfo.stateAbbr].legislationTopics.join(", ")}
+            {hoverInfo.stateAbbr && STATE_METRICS[hoverInfo.stateAbbr] && (
+              <div className="mt-1 pt-1 border-t border-[#2a2a2a] space-y-0.5 text-xs">
+                <div className="text-[#8a8580]">
+                  {formatPopulation(STATE_METRICS[hoverInfo.stateAbbr].population)} residents
+                </div>
+                <div className="text-[#8a8580]">
+                  {formatIncome(STATE_METRICS[hoverInfo.stateAbbr].medianIncome)} median income
+                </div>
+                <div className="text-[#8a8580]">
+                  {STATE_METRICS[hoverInfo.stateAbbr].unemploymentRate}% unemployment
+                </div>
+                {activeOverlays.size > 0 && (
+                  <div className="mt-1 pt-1 border-t border-[#2a2a2a] space-y-0.5">
+                    {activeOverlays.has("population") && (
+                      <div className="text-[#3b82f6]">
+                        Pop: {formatPopulation(STATE_METRICS[hoverInfo.stateAbbr].population)}
+                      </div>
+                    )}
+                    {activeOverlays.has("socioeconomic") && (
+                      <div className="text-[#eab308]">
+                        {STATE_METRICS[hoverInfo.stateAbbr].povertyRate}% poverty
+                      </div>
+                    )}
+                    {activeOverlays.has("employment") && (
+                      <div className="text-[#22c55e]">
+                        {STATE_METRICS[hoverInfo.stateAbbr].gig_pct}% gig economy
+                      </div>
+                    )}
+                    {activeOverlays.has("legislation") && STATE_METRICS[hoverInfo.stateAbbr].hasActiveLegislation && (
+                      <div className="text-[#ef4444]">
+                        {STATE_METRICS[hoverInfo.stateAbbr].legislationTopics.join(", ")}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
