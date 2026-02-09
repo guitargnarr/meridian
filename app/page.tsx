@@ -2,43 +2,21 @@
 
 import { ContactForm } from "./components/ContactForm";
 import {
-  BarChart3,
   TrendingUp,
   Map as MapIcon,
   Landmark,
   Globe,
   Users,
   ArrowRight,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Download,
 } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#050505]">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#1a1a1a] bg-[#050505]/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
-          <a href="/" className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-[#14b8a6]" />
-            <span className="text-sm font-semibold text-[#f5f0eb] tracking-tight">
-              Meridian
-            </span>
-          </a>
-          <div className="flex items-center gap-6">
-            <a
-              href="/explore"
-              className="text-xs uppercase tracking-[0.08em] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
-            >
-              Explore
-            </a>
-            <a
-              href="#contact"
-              className="text-xs uppercase tracking-[0.08em] text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
-            >
-              Contact
-            </a>
-          </div>
-        </div>
-      </nav>
+      {/* Navigation provided by layout.tsx Nav component */}
 
       {/* Hero Section */}
       <main role="main" className="relative pt-24">
@@ -134,47 +112,61 @@ export default function Home() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="card-glass rounded-xl p-6 space-y-3">
-                <div className="w-10 h-10 rounded-lg bg-[#3498db]/10 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-[#3498db]" />
-                </div>
-                <h3 className="text-sm font-medium text-[#f5f0eb]">
-                  Economic Overlays
-                </h3>
-                <p className="text-xs text-[#8a8580] leading-relaxed">
-                  Population density, median income, poverty rates, and
-                  employment statistics. See economic health at a glance
-                  with color-coded choropleth maps.
-                </p>
-              </div>
-
-              <div className="card-glass rounded-xl p-6 space-y-3">
-                <div className="w-10 h-10 rounded-lg bg-[#ef4444]/10 flex items-center justify-center">
-                  <Landmark className="w-5 h-5 text-[#ef4444]" />
-                </div>
-                <h3 className="text-sm font-medium text-[#f5f0eb]">
-                  Legislative Intelligence
-                </h3>
-                <p className="text-xs text-[#8a8580] leading-relaxed">
-                  Track state-level regulations, data privacy laws, and
-                  consumer protection legislation. Understand the
-                  regulatory landscape before you enter a market.
-                </p>
-              </div>
-
-              <div className="card-glass rounded-xl p-6 space-y-3">
+              <a href="/rank" className="card-glass rounded-xl p-6 space-y-3 group hover:border-[#14b8a6]/30 transition-all">
                 <div className="w-10 h-10 rounded-lg bg-[#14b8a6]/10 flex items-center justify-center">
-                  <MapIcon className="w-5 h-5 text-[#14b8a6]" />
+                  <SlidersHorizontal className="w-5 h-5 text-[#14b8a6]" />
                 </div>
-                <h3 className="text-sm font-medium text-[#f5f0eb]">
-                  Geographic Analysis
+                <h3 className="text-sm font-medium text-[#f5f0eb] flex items-center gap-2">
+                  Rank States
+                  <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#14b8a6]" />
                 </h3>
                 <p className="text-xs text-[#8a8580] leading-relaxed">
-                  Zoomable map with county-level detail, interstate highway
-                  overlays, and state-by-state comparison. Click any state
-                  to drill down into local metrics.
+                  Drag weighted sliders for unemployment, income, poverty,
+                  cost of living, and gig economy. All 50 states ranked
+                  in real time by your priorities.
                 </p>
-              </div>
+              </a>
+
+              <a href="/compare" className="card-glass rounded-xl p-6 space-y-3 group hover:border-[#14b8a6]/30 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-[#f97316]/10 flex items-center justify-center">
+                  <ArrowUpDown className="w-5 h-5 text-[#f97316]" />
+                </div>
+                <h3 className="text-sm font-medium text-[#f5f0eb] flex items-center gap-2">
+                  Compare States
+                  <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#14b8a6]" />
+                </h3>
+                <p className="text-xs text-[#8a8580] leading-relaxed">
+                  Pick 2-3 states and see metrics side by side.
+                  Best values highlighted. Export the comparison as CSV
+                  for further analysis.
+                </p>
+              </a>
+
+              <a href="/explore" className="card-glass rounded-xl p-6 space-y-3 group hover:border-[#14b8a6]/30 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-[#3498db]/10 flex items-center justify-center">
+                  <MapIcon className="w-5 h-5 text-[#3498db]" />
+                </div>
+                <h3 className="text-sm font-medium text-[#f5f0eb] flex items-center gap-2">
+                  Interactive Map
+                  <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#14b8a6]" />
+                </h3>
+                <p className="text-xs text-[#8a8580] leading-relaxed">
+                  Choropleth overlays for population, income, unemployment,
+                  gig economy, and legislation. Click any state for full
+                  economic profile and comparison tools.
+                </p>
+              </a>
+            </div>
+
+            {/* Export callout */}
+            <div className="mt-8 flex justify-center">
+              <a
+                href="/api/data/export?format=csv"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium bg-[#0a0a0a] border border-[#1a1a1a] text-[#8a8580] hover:border-[#2a2a2a] hover:text-[#f5f0eb] transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download all state data (CSV)
+              </a>
             </div>
           </div>
         </section>

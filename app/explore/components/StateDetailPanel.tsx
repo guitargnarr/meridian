@@ -1,6 +1,7 @@
 "use client";
 
-import { X, Users, DollarSign, Briefcase, TrendingUp, ShieldAlert } from "lucide-react";
+import Link from "next/link";
+import { X, Users, DollarSign, Briefcase, TrendingUp, ShieldAlert, ArrowUpDown, ExternalLink } from "lucide-react";
 import { STATE_NAMES } from "@/lib/fips-utils";
 import type { StateMetrics } from "@/lib/overlay-data";
 import { FALLBACK_STATE_METRICS, METRIC_MAXES, formatPopulation, formatIncome } from "@/lib/overlay-data";
@@ -153,6 +154,24 @@ function MetricContent({ metrics, stateAbbr, fullName, onClose }: {
         ) : (
           <p className="text-xs text-[#4a4540]">No active data privacy legislation</p>
         )}
+      </div>
+
+      {/* Cross-links */}
+      <div className="pt-2 border-t border-[#1a1a1a] flex flex-wrap gap-2">
+        <Link
+          href={`/state/${stateAbbr.toLowerCase()}`}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-medium uppercase tracking-wider bg-[#14b8a6]/10 border border-[#14b8a6]/30 text-[#14b8a6] hover:bg-[#14b8a6]/20 transition-all"
+        >
+          <ExternalLink className="w-3 h-3" />
+          Full Profile
+        </Link>
+        <Link
+          href={`/compare?states=${stateAbbr}`}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-medium uppercase tracking-wider bg-[#0a0a0a] border border-[#1a1a1a] text-[#8a8580] hover:border-[#2a2a2a] hover:text-[#f5f0eb] transition-all"
+        >
+          <ArrowUpDown className="w-3 h-3" />
+          Compare
+        </Link>
       </div>
     </div>
   );
