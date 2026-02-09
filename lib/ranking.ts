@@ -48,6 +48,16 @@ function normalize(value: number, max: number, inverted: boolean): number {
   return inverted ? 1 - clamped : clamped;
 }
 
+// Cost index: poverty-to-income ratio. High poverty + low income = expensive to
+// live in relative to earnings. This is independent of the raw income metric so
+// the "High Income" and "Low Cost" sliders measure different things.
+const COST_INDEX_MAX = 0.35; // ~20% poverty / ~57k income ≈ 0.35
+
+function costIndex(m: StateMetrics): number {
+  if (m.medianIncome === 0) return COST_INDEX_MAX;
+  return (m.povertyRate / 100) / (m.medianIncome / METRIC_MAXES.medianIncome);
+}
+
 export function computeRankings(
   metrics: Record<string, StateMetrics>,
   weights: RankingWeights
@@ -77,7 +87,7 @@ export function computeRankings(
       (weights.lowPoverty / totalWeight) *
         normalize(m.povertyRate, METRIC_MAXES.povertyRate, true) +
       (weights.lowCost / totalWeight) *
-        normalize(m.medianIncome, METRIC_MAXES.medianIncome, true) +
+        normalize(costIndex(m), COST_INDEX_MAX, true) +
       (weights.gigEconomy / totalWeight) *
         normalize(m.gig_pct, METRIC_MAXES.gig_pct, false);
 
