@@ -10,10 +10,10 @@ import ZoomControls from "./components/ZoomControls";
 import StateDetailPanel from "./components/StateDetailPanel";
 import type { InteractiveMapHandle } from "./components/InteractiveMap";
 
-export default function InvestigatePage() {
+export default function ExplorePage() {
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [isTilted, setIsTilted] = useState(false);
-  const [activeOverlays, setActiveOverlays] = useState<Set<OverlayId>>(new Set(["population"]));
+  const [activeOverlays, setActiveOverlays] = useState<Set<OverlayId>>(new Set());
   const [hintDismissed, setHintDismissed] = useState(false);
 
   const mapRef = useRef<InteractiveMapHandle>(null);
