@@ -581,19 +581,25 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           });
         });
 
+        // Invisible touch targets (min 22px hit area for mobile)
+        const minTouchRadius = 11 * scale;
         dotsGroup
-          .selectAll("circle")
+          .selectAll<SVGCircleElement, DotDatum>("circle.dot-hit")
           .data(dotData)
           .join("circle")
+          .attr("class", "dot-hit")
           .attr("cx", (d) => d.cx)
           .attr("cy", (d) => d.cy)
-          .attr("r", (d) => d.r)
-          .attr("fill", (d) => d.color)
-          .attr("opacity", 0.85)
+          .attr("r", (d) => Math.max(d.r + 4 * scale, minTouchRadius))
+          .attr("fill", "transparent")
           .attr("cursor", "pointer")
           .attr("pointer-events", "all")
-          .on("mouseenter", function (event, d) {
-            d3.select(this)
+          .on("mouseenter touchstart", function (event, d) {
+            event.preventDefault();
+            // Find and enlarge the visible sibling dot
+            const visible = dotsGroup.selectAll<SVGCircleElement, DotDatum>("circle.dot-visible")
+              .filter((vd) => vd.cx === d.cx && vd.cy === d.cy);
+            visible
               .transition().duration(150)
               .attr("r", d.r * 1.6)
               .attr("opacity", 1)
@@ -602,8 +608,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
 
             // Get screen position from SVG coordinates
             const svgEl = svgRef.current;
-            const containerEl = containerRef.current;
-            if (svgEl && containerEl) {
+            if (svgEl) {
               const transform = d3.zoomTransform(svgEl);
               const screenX = transform.applyX(d.cx);
               const screenY = transform.applyY(d.cy);
@@ -616,14 +621,29 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
               });
             }
           })
-          .on("mouseleave", function (_, d) {
-            d3.select(this)
+          .on("mouseleave touchend", function (_, d) {
+            const visible = dotsGroup.selectAll<SVGCircleElement, DotDatum>("circle.dot-visible")
+              .filter((vd) => vd.cx === d.cx && vd.cy === d.cy);
+            visible
               .transition().duration(150)
               .attr("r", d.r)
               .attr("opacity", 0.85)
               .attr("stroke", "none");
             setDotTooltip(null);
           });
+
+        // Visible dots (rendered on top of hit targets)
+        dotsGroup
+          .selectAll<SVGCircleElement, DotDatum>("circle.dot-visible")
+          .data(dotData)
+          .join("circle")
+          .attr("class", "dot-visible")
+          .attr("cx", (d) => d.cx)
+          .attr("cy", (d) => d.cy)
+          .attr("r", (d) => d.r)
+          .attr("fill", (d) => d.color)
+          .attr("opacity", 0.85)
+          .attr("pointer-events", "none");
 
         // Fade in
         dotsGroup.transition().duration(400).attr("opacity", 1);
