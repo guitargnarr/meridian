@@ -79,6 +79,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     const [resizeGen, setResizeGen] = useState(0);
     const [lensPos, setLensPos] = useState<{ x: number; y: number } | null>(null);
     const lensTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+    const [dotTooltip, setDotTooltip] = useState<{
+      label: string;
+      value: string;
+      color: string;
+      x: number;
+      y: number;
+    } | null>(null);
 
     // Clean up lens timer on unmount
     useEffect(() => {
@@ -472,6 +479,22 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         });
     }, [activeOverlays, getOverlayFill, defaultFill]);
 
+    // ── Metric dot definitions (shared for dots + legend) ──────────
+    const METRIC_DOTS = [
+      { key: "population", label: "Population", color: "#3b82f6", dx: 0, dy: -1 },
+      { key: "medianIncome", label: "Median Income", color: "#22c55e", dx: 1, dy: 0 },
+      { key: "unemploymentRate", label: "Unemployment", color: "#f43f5e", dx: 0, dy: 1 },
+      { key: "gig_pct", label: "Gig Economy", color: "#14b8a6", dx: -1, dy: 0 },
+      { key: "povertyRate", label: "Poverty Rate", color: "#d97706", dx: 0, dy: 0 },
+    ] as const;
+
+    // Are metric dots currently visible?
+    const metricOverlaysActive =
+      activeOverlays.has("population") ||
+      activeOverlays.has("socioeconomic") ||
+      activeOverlays.has("employment");
+    const dotsVisible = !metricOverlaysActive && currentZoom >= 0.5;
+
     // ── Metric cluster dots ──────────────────────────────────────────
 
     useEffect(() => {
@@ -497,26 +520,28 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         const pathGen = pathRef.current;
         const features = stateFeaturesRef.current;
 
-        // Remove old dots
-        g.selectAll(".metric-dots").remove();
+        // Fade out and remove old dots
+        const existing = g.selectAll<SVGGElement, unknown>(".metric-dots");
+        if (!existing.empty()) {
+          existing.transition().duration(300).attr("opacity", 0).remove();
+        }
 
-        // Hide dots when metric-encoding overlays are active
-        const metricOverlaysActive =
-          activeOverlays.has("population") ||
-          activeOverlays.has("socioeconomic") ||
-          activeOverlays.has("employment");
-
-        if (metricOverlaysActive || features.length === 0) return;
-
-        // Hide dots when zoomed out too far
-        if (currentZoom < 0.5) return;
+        if (!dotsVisible || features.length === 0) return;
 
         // Insert before labels so dots sit below label text in z-order
-        const dotsGroup = g.insert("g", ".labels").attr("class", "metric-dots");
+        const dotsGroup = g.insert("g", ".labels")
+          .attr("class", "metric-dots")
+          .attr("opacity", 0);
+
         const scale = 1 / Math.sqrt(Math.max(currentZoom, 0.5));
+        const offset = 7 * scale;
 
         // Build flat array of all dot data for D3 data-join
-        const dotData: { cx: number; cy: number; r: number; color: string }[] = [];
+        interface DotDatum {
+          cx: number; cy: number; r: number; color: string;
+          label: string; value: string; abbr: string;
+        }
+        const dotData: DotDatum[] = [];
 
         features.forEach((feature) => {
           const fips = String(feature.id).padStart(2, "0");
@@ -528,22 +553,26 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return;
 
           const [cx, cy] = centroid;
-          const offset = 6 * scale;
 
-          const defs = [
-            { dx: 0, dy: -offset, value: metrics.population / METRIC_MAXES.population, color: "#3b82f6" },
-            { dx: offset, dy: 0, value: metrics.medianIncome / METRIC_MAXES.medianIncome, color: "#22c55e" },
-            { dx: 0, dy: offset, value: metrics.unemploymentRate / METRIC_MAXES.unemploymentRate, color: "#eab308" },
-            { dx: -offset, dy: 0, value: metrics.gig_pct / METRIC_MAXES.gig_pct, color: "#14b8a6" },
-            { dx: 0, dy: 0, value: metrics.povertyRate / METRIC_MAXES.povertyRate, color: "#f59e0b" },
-          ];
+          METRIC_DOTS.forEach((def) => {
+            const raw = metrics[def.key as keyof typeof metrics] as number;
+            const maxVal = METRIC_MAXES[def.key as keyof typeof METRIC_MAXES];
+            const normalized = Math.min(raw / maxVal, 1);
 
-          defs.forEach((d) => {
+            // Format display value per metric type
+            let displayValue: string;
+            if (def.key === "population") displayValue = formatPopulation(raw);
+            else if (def.key === "medianIncome") displayValue = formatIncome(raw);
+            else displayValue = `${raw}%`;
+
             dotData.push({
-              cx: cx + d.dx,
-              cy: cy + d.dy,
-              r: (1.5 + Math.min(d.value, 1) * 2.5) * scale,
-              color: d.color,
+              cx: cx + def.dx * offset,
+              cy: cy + def.dy * offset,
+              r: (2.5 + normalized * 3.5) * scale,
+              color: def.color,
+              label: def.label,
+              value: displayValue,
+              abbr,
             });
           });
         });
@@ -557,11 +586,47 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
           .attr("r", (d) => d.r)
           .attr("fill", (d) => d.color)
           .attr("opacity", 0.85)
-          .attr("pointer-events", "none");
+          .attr("cursor", "pointer")
+          .attr("pointer-events", "all")
+          .on("mouseenter", function (event, d) {
+            d3.select(this)
+              .transition().duration(150)
+              .attr("r", d.r * 1.6)
+              .attr("opacity", 1)
+              .attr("stroke", "#fff")
+              .attr("stroke-width", 1);
+
+            // Get screen position from SVG coordinates
+            const svgEl = svgRef.current;
+            const containerEl = containerRef.current;
+            if (svgEl && containerEl) {
+              const transform = d3.zoomTransform(svgEl);
+              const screenX = transform.applyX(d.cx);
+              const screenY = transform.applyY(d.cy);
+              setDotTooltip({
+                label: d.label,
+                value: `${STATE_NAMES[d.abbr] || d.abbr}: ${d.value}`,
+                color: d.color,
+                x: screenX,
+                y: screenY,
+              });
+            }
+          })
+          .on("mouseleave", function (_, d) {
+            d3.select(this)
+              .transition().duration(150)
+              .attr("r", d.r)
+              .attr("opacity", 0.85)
+              .attr("stroke", "none");
+            setDotTooltip(null);
+          });
+
+        // Fade in
+        dotsGroup.transition().duration(400).attr("opacity", 1);
       }
 
       return () => { cancelled = true; cancelAnimationFrame(rafId); };
-    }, [activeOverlays, currentZoom, resizeGen]);
+    }, [activeOverlays, currentZoom, resizeGen, dotsVisible]);
 
     // ── Update overlay layers (no full re-render) ───────────────────
 
@@ -884,6 +949,39 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Dot metric tooltip (on individual dot hover) */}
+        {dotTooltip && (
+          <div
+            className="absolute pointer-events-none z-20 px-2.5 py-1.5 rounded-md bg-[#0a0a0a]/95 border backdrop-blur-sm text-xs whitespace-nowrap"
+            style={{
+              left: dotTooltip.x + 12,
+              top: dotTooltip.y - 28,
+              borderColor: dotTooltip.color,
+            }}
+          >
+            <div className="font-medium" style={{ color: dotTooltip.color }}>{dotTooltip.label}</div>
+            <div className="text-[#f5f0eb]">{dotTooltip.value}</div>
+          </div>
+        )}
+
+        {/* Metric dots legend */}
+        {dotsVisible && (
+          <div className="absolute bottom-3 left-3 px-2.5 py-2 rounded-lg bg-[#0a0a0a]/90 border border-[#1a1a1a] backdrop-blur-sm">
+            <div className="text-[10px] text-[#4a4540] uppercase tracking-wider mb-1.5">Metrics</div>
+            <div className="space-y-1">
+              {METRIC_DOTS.map((m) => (
+                <div key={m.key} className="flex items-center gap-1.5">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: m.color }}
+                  />
+                  <span className="text-[11px] text-[#8a8580]">{m.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
