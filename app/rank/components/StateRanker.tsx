@@ -84,6 +84,13 @@ export default function StateRanker() {
     [router]
   );
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (urlTimerRef.current) clearTimeout(urlTimerRef.current);
+    };
+  }, []);
+
   // Compute rankings
   const rankings = useMemo(() => computeRankings(metrics, weights), [metrics, weights]);
 
