@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { BarChart3, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type { OverlayId, StateMetrics } from "@/lib/overlay-data";
 import { OVERLAY_CONFIGS, FALLBACK_STATE_METRICS } from "@/lib/overlay-data";
 import { fetchLiveMetrics } from "@/lib/data-fetcher";
@@ -62,38 +62,12 @@ export default function ExplorePage() {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505]">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-[#1a1a1a] bg-[#050505]/90 backdrop-blur-sm z-10 entrance-header">
-        <div className="flex items-center gap-3">
-          <a
-            href="/"
-            className="flex items-center gap-2 text-[#f5f0eb] hover:text-[#14b8a6] transition-colors"
-          >
-            <BarChart3 className="w-6 h-6 text-[#14b8a6]" />
-            <span className="text-lg font-semibold tracking-tight">
-              Meridian
-            </span>
-          </a>
-          <div className="h-4 w-px bg-[#1a1a1a]" />
-          <span className="text-sm text-[#4a4540] uppercase tracking-[0.15em] font-medium">
-            US Economic Data
-          </span>
-        </div>
-        <nav className="flex items-center gap-4">
-          <a
-            href="/"
-            className="text-sm text-[#8a8580] hover:text-[#f5f0eb] transition-colors"
-          >
-            Home
-          </a>
-          <a
-            href="/explore"
-            className="text-sm text-[#14b8a6]"
-          >
-            Explore
-          </a>
-        </nav>
+    <div className="h-screen flex flex-col bg-[#050505] pt-14">
+      {/* Context bar below global Nav */}
+      <header className="flex items-center px-4 py-1.5 border-b border-[#1a1a1a] bg-[#050505]/90 backdrop-blur-sm z-10 entrance-header">
+        <span className="text-xs text-[#4a4540] uppercase tracking-[0.15em] font-medium">
+          US Economic Data Explorer
+        </span>
       </header>
 
       {/* Full-width map */}
