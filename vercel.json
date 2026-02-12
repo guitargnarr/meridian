@@ -2,14 +2,8 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "phishguard-ui.vercel.app" }],
-      "destination": "https://meridian.projectlavos.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/investigate/:path*",
-      "destination": "/explore/:path*",
-      "permanent": true
+      "destination": "https://projectlavos.com",
+      "permanent": false
     }
   ]
 }
