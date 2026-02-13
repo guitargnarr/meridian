@@ -1,18 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { X, Users, DollarSign, Briefcase, TrendingUp, ShieldAlert, ArrowUpDown, ExternalLink } from "lucide-react";
+import { X, Pill, Users } from "lucide-react";
 import { STATE_NAMES } from "@/lib/fips-utils";
 import type { StateMetrics } from "@/lib/overlay-data";
-import { FALLBACK_STATE_METRICS, METRIC_MAXES, formatPopulation, formatIncome } from "@/lib/overlay-data";
+import { FALLBACK_STATE_METRICS, METRIC_MAXES, formatPopulation, formatPharmacyCount } from "@/lib/overlay-data";
 
 interface StateDetailPanelProps {
   stateAbbr: string | null;
   onClose: () => void;
   stateMetrics?: Record<string, StateMetrics>;
 }
-
-const { population: MAX_POP, medianIncome: MAX_INCOME, unemploymentRate: MAX_UNEMP, gig_pct: MAX_GIG, povertyRate: MAX_POVERTY } = METRIC_MAXES;
 
 function MetricBar({ pct, color }: { pct: number; color: string }) {
   return (
@@ -31,6 +28,12 @@ function MetricContent({ metrics, stateAbbr, fullName, onClose }: {
   fullName: string;
   onClose: () => void;
 }) {
+  const pharm = metrics.pharmacy;
+  const viability = pharm
+    ? Math.round(((pharm.active + pharm.likelyActive) / pharm.independentCount) * 100)
+    : 0;
+  const viabilityColor = viability >= 55 ? "#22c55e" : viability >= 48 ? "#eab308" : "#ef4444";
+
   return (
     <div className="p-4 md:p-5 space-y-4 md:space-y-5">
       {/* Header */}
@@ -50,128 +53,82 @@ function MetricContent({ metrics, stateAbbr, fullName, onClose }: {
         </button>
       </div>
 
-      {/* Key Metrics - grid on mobile bottom sheet, stack on desktop sidebar */}
-      <div className="space-y-3">
-        <h3 className="text-xs text-[#4a4540] uppercase tracking-[0.15em] font-medium">Key Metrics</h3>
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-1">
-          {/* Population */}
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-3.5 h-3.5 text-[#3b82f6]" />
-                <span className="text-xs text-[#8a8580]">Population</span>
-              </div>
-              <span className="text-sm font-mono text-[#f5f0eb]">
-                {formatPopulation(metrics.population)}
-              </span>
-            </div>
-            <MetricBar pct={(metrics.population / MAX_POP) * 100} color="#3b82f6" />
-          </div>
-
-          {/* Median Income */}
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-3.5 h-3.5 text-[#22c55e]" />
-                <span className="text-xs text-[#8a8580]">Median Income</span>
-              </div>
-              <span className="text-sm font-mono text-[#f5f0eb]">
-                {formatIncome(metrics.medianIncome)}
-              </span>
-            </div>
-            <MetricBar pct={(metrics.medianIncome / MAX_INCOME) * 100} color="#22c55e" />
-          </div>
-
-          {/* Unemployment */}
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Briefcase className="w-3.5 h-3.5 text-[#eab308]" />
-                <span className="text-xs text-[#8a8580]">Unemployment</span>
-              </div>
-              <span className="text-sm font-mono text-[#f5f0eb]">
-                {metrics.unemploymentRate}%
-              </span>
-            </div>
-            <MetricBar pct={(metrics.unemploymentRate / MAX_UNEMP) * 100} color="#eab308" />
-          </div>
-
-          {/* Gig Economy */}
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-3.5 h-3.5 text-[#14b8a6]" />
-                <span className="text-xs text-[#8a8580]">Gig Economy</span>
-              </div>
-              <span className="text-sm font-mono text-[#f5f0eb]">
-                {metrics.gig_pct}%
-              </span>
-            </div>
-            <MetricBar pct={(metrics.gig_pct / MAX_GIG) * 100} color="#14b8a6" />
-          </div>
-        </div>
-      </div>
-
-      {/* Poverty */}
-      <div className="space-y-2">
-        <h3 className="text-xs text-[#4a4540] uppercase tracking-[0.15em] font-medium">Poverty Rate</h3>
-        <div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#8a8580]">Below poverty line</span>
-            <span className="text-sm font-mono text-[#f5f0eb]">
-              {metrics.povertyRate}%
-            </span>
-          </div>
-          <MetricBar pct={(metrics.povertyRate / MAX_POVERTY) * 100} color="#f59e0b" />
-          <div className="flex justify-between mt-0.5">
-            <span className="text-[10px] text-[#4a4540]">0%</span>
-            <span className="text-[10px] text-[#4a4540]">20%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Legislation */}
-      <div className="space-y-2">
-        <h3 className="text-xs text-[#4a4540] uppercase tracking-[0.15em] font-medium flex items-center gap-1.5">
-          <ShieldAlert className="w-3.5 h-3.5" />
-          Legislation
-        </h3>
-        {metrics.hasActiveLegislation ? (
+      {/* Pharmacy Market (Primary) */}
+      {pharm && (
+        <>
+          {/* Viability Score */}
           <div className="space-y-2">
-            <span className="text-xs text-[#ef4444] font-medium">Active Legislation</span>
-            <div className="flex flex-wrap gap-1.5">
-              {metrics.legislationTopics.map((topic) => (
-                <span
-                  key={topic}
-                  className="px-2 py-1 rounded text-[10px] leading-tight font-medium bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20"
-                >
-                  {topic}
-                </span>
-              ))}
+            <h3 className="text-xs text-[#4a4540] uppercase tracking-[0.15em] font-medium flex items-center gap-1.5">
+              <Pill className="w-3.5 h-3.5" />
+              Viability Score
+            </h3>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-mono font-bold" style={{ color: viabilityColor }}>
+                {viability}%
+              </span>
+              <span className="text-xs text-[#4a4540]">of pharmacies contactable</span>
             </div>
           </div>
-        ) : (
-          <p className="text-xs text-[#4a4540]">No active data privacy legislation</p>
-        )}
-      </div>
 
-      {/* Cross-links */}
-      <div className="pt-2 border-t border-[#1a1a1a] flex flex-wrap gap-2">
-        <Link
-          href={`/state/${stateAbbr.toLowerCase()}`}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-medium uppercase tracking-wider bg-[#14b8a6]/10 border border-[#14b8a6]/30 text-[#14b8a6] hover:bg-[#14b8a6]/20 transition-all"
-        >
-          <ExternalLink className="w-3 h-3" />
-          Full Profile
-        </Link>
-        <Link
-          href={`/compare?states=${stateAbbr}`}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-medium uppercase tracking-wider bg-[#0a0a0a] border border-[#1a1a1a] text-[#8a8580] hover:border-[#2a2a2a] hover:text-[#f5f0eb] transition-all"
-        >
-          <ArrowUpDown className="w-3 h-3" />
-          Compare
-        </Link>
+          {/* Total Count */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#8a8580]">Independent pharmacies</span>
+              <span className="text-sm font-mono text-[#f5f0eb]">
+                {formatPharmacyCount(pharm.independentCount)}
+              </span>
+            </div>
+            <MetricBar pct={(pharm.independentCount / METRIC_MAXES.pharmacyCount) * 100} color="#a855f7" />
+          </div>
+
+          {/* Status Breakdown */}
+          <div className="space-y-2">
+            <div className="text-[10px] text-[#4a4540] uppercase tracking-wider">Status Breakdown</div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-[#22c55e]">Active</span>
+                  <span className="text-[11px] font-mono text-[#8a8580]">{pharm.active.toLocaleString()}</span>
+                </div>
+                <MetricBar pct={(pharm.active / pharm.independentCount) * 100} color="#22c55e" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-[#3b82f6]">Likely Active</span>
+                  <span className="text-[11px] font-mono text-[#8a8580]">{pharm.likelyActive.toLocaleString()}</span>
+                </div>
+                <MetricBar pct={(pharm.likelyActive / pharm.independentCount) * 100} color="#3b82f6" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-[#eab308]">Uncertain</span>
+                  <span className="text-[11px] font-mono text-[#8a8580]">{pharm.uncertain.toLocaleString()}</span>
+                </div>
+                <MetricBar pct={(pharm.uncertain / pharm.independentCount) * 100} color="#eab308" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-[#ef4444]">Likely Closed</span>
+                  <span className="text-[11px] font-mono text-[#8a8580]">{pharm.likelyClosed.toLocaleString()}</span>
+                </div>
+                <MetricBar pct={(pharm.likelyClosed / pharm.independentCount) * 100} color="#ef4444" />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Context: Population */}
+      <div className="pt-2 border-t border-[#1a1a1a]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-3.5 h-3.5 text-[#4a4540]" />
+            <span className="text-xs text-[#4a4540]">Population</span>
+          </div>
+          <span className="text-xs font-mono text-[#8a8580]">
+            {formatPopulation(metrics.population)}
+          </span>
+        </div>
       </div>
     </div>
   );
